@@ -1,0 +1,3 @@
+change CAN transceiver to SMD
+
+cable mounting?
