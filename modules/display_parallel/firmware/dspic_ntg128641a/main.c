@@ -13,7 +13,6 @@
 //==============================================================================
 //--------------------GLOBAL VARIABLES------------------------------------------
 //==============================================================================
-u8 lcd_buff[LCD_X*LCD_Y/8];
 extern volatile u8 rot_flags;
 
 
@@ -111,10 +110,7 @@ int main(void)
 	tmp_data[2] = 0x89ab;
 	tmp_data[3] = 0xcdef;
     ecan_tx(0xF9532408,8,0,tmp_data);
-    
-    GL_CS1 = 1;
-    lcd_fill(1);
-    GL_CS1 = 0;
+
     u8 i = 10;
     while(1)
     {
@@ -129,40 +125,30 @@ int main(void)
             rot_flags = 0;
         }
 
-        memset(lcd_buff,0,sizeof(lcd_buff));
+        lcd_clrbuff();
         
-//        char tmp_str[16];
-//        mprint_int(tmp_str, cid_rx>>16, 16, 4);
-//        LCD_string(lcd_buff, tmp_str, 20, 20, GLCD_ROTATE_0, GLCD_FONT_5x7, GLCD_COLOR_BLACK, 32);
-//        mprint_int(tmp_str, cid_rx&0xFFFF, 16, 4);
-//        LCD_string(lcd_buff, tmp_str, 44, 20, GLCD_ROTATE_0, GLCD_FONT_5x7, GLCD_COLOR_BLACK, 32);
-//        
-//        LCD_string(lcd_buff, "Len:", 80, 20, GLCD_ROTATE_0, GLCD_FONT_5x7, GLCD_COLOR_BLACK, 32);
-//        mprint_int(tmp_str, len_rx, 10, 1);
-//        LCD_string(lcd_buff, tmp_str, 104, 20, GLCD_ROTATE_0, GLCD_FONT_5x7, GLCD_COLOR_BLACK, 32);
-//        
-//        u8 j;
-//        for (j=0;j<4;j++) {
-//            mprint_int(tmp_str, data_rx[j], 16, 4);
-//            LCD_string(lcd_buff, tmp_str, 10+j*28, 36, GLCD_ROTATE_0, GLCD_FONT_5x7, GLCD_COLOR_BLACK, 32);
-//        }
-//
-//        LCD_rect(lcd_buff, 0, 0, LCD_X-1, LCD_Y-1, GLCD_COLOR_BLACK, 0);
-//        if (rtr_rx)
-//            LCD_circle(lcd_buff, 100, 50, 5, GLCD_COLOR_BLACK);
-//        LCD_string(lcd_buff, "ModAir", i, 10, GLCD_ROTATE_0, GLCD_FONT_5x7, GLCD_COLOR_BLACK, 32);
+        char tmp_str[16];
+        mprint_int(tmp_str, cid_rx>>16, 16, 4);
+        LCD_string(tmp_str, 20, 20, GLCD_ROTATE_0, GLCD_FONT_5x7, LCD_BLACK, 32);
+        mprint_int(tmp_str, cid_rx&0xFFFF, 16, 4);
+        LCD_string(tmp_str, 44, 20, GLCD_ROTATE_0, GLCD_FONT_5x7, LCD_BLACK, 32);
         
-        //LCD_line(lcd_buff, 0, 0, 63, 63, GLCD_COLOR_BLACK);
-        //LCD_dot(lcd_buff, 5, 5, 3, GLCD_COLOR_BLACK);
-        //LCD_dot(lcd_buff, 120, 60, 3, GLCD_COLOR_BLACK);
-        lcd_buff[0] = 0x1F;
-        lcd_buff[8] = 0xAA;
-        lcd_buff[32] = 0x11;
-        lcd_buff[64] = 0x11;
-        
-    GL_CS2 = 1;
-        lcd_bitmap(lcd_buff);
-    GL_CS2 = 0;
+        LCD_string("Len:", 80, 20, GLCD_ROTATE_0, GLCD_FONT_5x7, LCD_BLACK, 32);
+        mprint_int(tmp_str, len_rx, 10, 1);
+        LCD_string(tmp_str, 104, 20, GLCD_ROTATE_0, GLCD_FONT_5x7, LCD_BLACK, 32);
+
+        u8 j;
+        for (j=0;j<4;j++) {
+            mprint_int(tmp_str, data_rx[j], 16, 4);
+            LCD_string(tmp_str, 10+j*28, 36, GLCD_ROTATE_0, GLCD_FONT_5x7, LCD_BLACK, 32);
+        }
+
+        LCD_rect(0, 0, LCD_X-1, LCD_Y-1, LCD_BLACK, 0);
+        if (rtr_rx)
+            LCD_circle(100, 50, 5, LCD_BLACK);
+        LCD_string("ModAir", i, 10, GLCD_ROTATE_0, GLCD_FONT_5x7, LCD_BLACK, 32);
+
+        lcd_update();
 
         led_toggle();
         //delay_ms(100);

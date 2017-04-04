@@ -1,5 +1,7 @@
 #include "glcd.h"
 
+u8 lcd_buff[LCD_X*LCD_Y/8];
+
 void lcd_out(u8 val)
 {
     GL_RS = GL_RS_DATA;
@@ -25,13 +27,13 @@ void lcd_cmd(u8 val)
 void lcd_fill(u8 color)
 {
     u8 i,j;
-    for (j=0;j<8;j++)
-    {
+    for (j=0;j<8;j++) {
         lcd_cmd(LCD_SET_PAGE + j); // set page j
-        if (color) {
+        if (color == LCD_BLACK) {
             for (i=0;i<64;i++)
                 lcd_out(0xFF);
-        } else {
+        }
+        if (color == LCD_WHITE) {
             for (i=0;i<64;i++)
                 lcd_out(0x00);
         }
@@ -60,15 +62,46 @@ void lcd_init(void)
     GL_CS2 = 0;
 }
 
-void lcd_bitmap(u8 *buff)
+void lcd_update() // copy display buffer to the LCD
 {
+    u8* buff = lcd_buff;
     u8 i,j;
+    GL_CS1 = 1;
+    GL_CS2 = 1;
     lcd_cmd(LCD_START_LINE | 0); // start line = 0
     for (i=0;i<8;i++) {
         lcd_cmd(LCD_SET_PAGE | i); // set page = i
         lcd_cmd(LCD_SET_ADDR | 0); // set addr = 0
+        GL_CS2 = 0;
         for (j=0;j<64;j++)
             lcd_out(*buff++);
+        GL_CS1 = 0;
+        GL_CS2 = 1;
+        for (j=0;j<64;j++)
+            lcd_out(*buff++);
+        GL_CS1 = 1;
     }
     lcd_cmd(LCD_ON); // display on
+    GL_CS1 = 0;
+    GL_CS2 = 0;
 }
+
+void lcd_clrbuff() // clear the display buffer
+{
+    u16 i;
+    for (i=0;i<LCD_X*LCD_Y/8;i++)
+        lcd_buff[i] = 0;
+}
+
+void lcd_setpixel(u8 x, u8 y, u8 color) // set/clr a bit in the display buffer
+{
+    if ((x>=LCD_X)||(y>=LCD_Y))
+        return;
+
+    u16 buff_offset = ((y&0xF8)<<4)+x;
+    if (color == LCD_BLACK)
+        lcd_buff[buff_offset] |= (1<<(y&0x07)); // set bit
+    if (color == LCD_WHITE)
+        lcd_buff[buff_offset] &= (~(1<<(y&0x07))); // clear bit
+}
+

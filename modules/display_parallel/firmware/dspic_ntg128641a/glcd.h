@@ -27,6 +27,8 @@
 
 #define LCD_X                   128
 #define LCD_Y                   64
+#define LCD_WHITE               0
+#define LCD_BLACK               1
 
 #define GL_RS_INSTR             0
 #define GL_RS_DATA              1
@@ -54,10 +56,14 @@
 #define lcd_dir_out()   (TRISB &= 0b0000000111101110)
 #define lcd_data_out(x) (LATB = (LATB&0b111101111) | ((x&0xFE)<<8) | ((x&0x01)<<4))
 
+
+
 void lcd_out(u8 val);
 void lcd_cmd(u8 val);
 void lcd_init(void);
 void lcd_fill(u8 color);
-void lcd_bitmap(u8 *buff);
+void lcd_update(void);
+void lcd_clrbuff(void);
+void lcd_setpixel(u8 x, u8 y, u8 color);
 
 #endif
