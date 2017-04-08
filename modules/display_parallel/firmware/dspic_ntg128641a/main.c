@@ -13,7 +13,7 @@
 //==============================================================================
 //--------------------GLOBAL VARIABLES------------------------------------------
 //==============================================================================
-extern volatile u8 rot_flags;
+extern volatile u8 rot_enc_input;
 
 
 
@@ -114,15 +114,28 @@ int main(void)
     u8 i = 10;
     while(1)
     {
-        if (rot_flags & rot_mod_flag)
-        {
-            if (rot_flags & rot_inc_flag)
-                i++;
-            if (rot_flags & rot_dec_flag)
-                i--;
-            if (rot_flags & rot_longpush_flag)
-                i=0;
-            rot_flags = 0;
+        if (rot_enc_input) {
+            switch(rot_enc_input) {
+                case C_ROT_INC:
+                    i++;
+                    break;
+                case C_ROT_DEC:
+                    i--;
+                    break;
+                case C_ROT_PUSH:
+                    i = 0;
+                    break;
+                case C_ROT_HOLD:
+                    i = 10;
+                    break;
+                case C_ROT_LONGHOLD:
+                    i = 20;
+                    break;
+                case C_ROT_EXTRALONGHOLD:
+                    i = 30;
+                    break;
+            }
+            rot_enc_input = 0;
         }
 
         lcd_clrbuff();

@@ -21,13 +21,14 @@
 #define ROT1pu                  CNPUBbits.CNPUB3
 #define ROT1                    PORTBbits.RB3
 
-#define rot_inc_flag       0b00000001
-#define rot_dec_flag       0b00000010
-#define rot_push_flag      0b00000100
-#define rot_longpush_flag  0b00001000
-#define rot_shift_inc_flag 0b00010000
-#define rot_shift_dec_flag 0b00100000
-#define rot_mod_flag       0b10000000
+#define C_ROT_INC               0x81
+#define C_ROT_DEC               0x82
+#define C_ROT_HOLD_INC          0x83
+#define C_ROT_HOLD_DEC          0x84
+#define C_ROT_PUSH              0x85
+#define C_ROT_HOLD              0x86
+#define C_ROT_LONGHOLD          0x87
+#define C_ROT_EXTRALONGHOLD     0x88
 
 void rot_enc_irq(void);
 void rot_enc_tmr(void);
