@@ -5,6 +5,7 @@
 #include "common.h"
 #include "config_bits.h"
 #include "led.h"
+#include "buzzer.h"
 #include "rot_enc.h"
 #include "glcd.h"
 #include "glcd_lib.h"
@@ -91,6 +92,7 @@ int main(void)
 {
     osc_init();
     led_init();
+    buzzer_init();
     rot_enc_init();
     lcd_init();
     ecan_init();
