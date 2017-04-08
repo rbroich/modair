@@ -14,6 +14,8 @@ typedef unsigned long long int u64;
 
 #define F_CY                    59881250
 
+#define FLASH_PAGE_SIZE         2048    // 1024 instructions
+
 #define INPUT_PIN               1
 #define OUTPUT_PIN              0
 #define ANALOG_PIN              1

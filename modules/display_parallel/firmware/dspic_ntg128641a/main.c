@@ -9,11 +9,13 @@
 #include "glcd.h"
 #include "glcd_lib.h"
 #include "ecan_mod.h"
+#include "widgets.h"
+#include "menu_functions.h"
 
 //==============================================================================
 //--------------------GLOBAL VARIABLES------------------------------------------
 //==============================================================================
-extern volatile u8 rot_enc_input;
+volatile u8 rot_enc_input = 0;
 
 
 
@@ -41,6 +43,16 @@ void __attribute__((interrupt, auto_psv)) _C1Interrupt(void)
 //==============================================================================
 //--------------------INIT FUNCTIONS--------------------------------------------
 //==============================================================================
+void osc_init(void)
+{
+    OSCTUN = 0; // 7.37 MHz
+    CLKDIV = 0; // N1=2, N2=2
+    PLLFBD = 63; // M=65
+    // Fosc = 7.37*M/(N1*N2) = 119.7625 MHz
+    // Fcy  = Fosc/2 = 59.88125 MIPS
+    while (OSCCONbits.LOCK!=1){}; // Wait for PLL to lock
+}
+
 void tmr1_init(u16 freq_hz)
 {
     T1CON = 0b1000000000110000; // TMR1 on, 1:256 prescale, Fosc/2
@@ -63,37 +75,21 @@ void irq_init(void)
 }
 
 //==============================================================================
-//--------------------MAIN LOOP-------------------------------------------------
+//--------------------COMMUNICATIONS HANDLER------------------------------------
 //==============================================================================
-
-
-
-u32 cid_rx = 0x01234567;
-u8 len_rx = 5;
-u8 rtr_rx = 1;
-u16 data_rx[4] = {0,0,0,0};
 void ecan_rx(u32 cid, u8 len, u8 rtr, u16 *data)
 {
-    cid_rx = cid;
-    len_rx = len;
-    rtr_rx = rtr;
-    data_rx[0] = data[0];
-    data_rx[1] = data[1];
-    data_rx[2] = data[2];
-    data_rx[3] = data[3];
+
 }
 
 
 
+//==============================================================================
+//--------------------MAIN LOOP-------------------------------------------------
+//==============================================================================
 int main(void)
 {
-    OSCTUN = 0; // 7.37 MHz
-    CLKDIV = 0; // N1=2, N2=2
-    PLLFBD = 63; // M=65
-    // Fosc = 7.37*M/(N1*N2) = 119.7625 MHz
-    // Fcy  = Fosc/2 = 59.88125 MIPS
-    while (OSCCONbits.LOCK!=1){}; // Wait for PLL to lock
-
+    osc_init();
     led_init();
     rot_enc_init();
     lcd_init();
@@ -101,69 +97,33 @@ int main(void)
     tmr1_init(50); // 50 Hz == 20 ms ticks
     irq_init();
 
-    //C1CTRL1bits.REQOP = 0b010; // enter loopback mode
-    //while(C1CTRL1bits.OPMODE != 0b010); // wait for loopback mode
+    read_widgets();
 
-    u16 tmp_data[4];
-	tmp_data[0] = 0x0123; // data
-	tmp_data[1] = 0x4567;
-	tmp_data[2] = 0x89ab;
-	tmp_data[3] = 0xcdef;
-    ecan_tx(0xF9532408,8,0,tmp_data);
+    // use function pointers to navigate through the menu;
+    // default screen after bootup: home screen
+    void* (*current_menu_fnc)(u8) = &menu_fnc_homescreen;
 
-    u8 i = 10;
-    while(1)
-    {
-        if (rot_enc_input) {
-            switch(rot_enc_input) {
-                case C_ROT_INC:
-                    i++;
-                    break;
-                case C_ROT_DEC:
-                    i--;
-                    break;
-                case C_ROT_PUSH:
-                    i = 0;
-                    break;
-                case C_ROT_HOLD:
-                    i = 10;
-                    break;
-                case C_ROT_LONGHOLD:
-                    i = 20;
-                    break;
-                case C_ROT_EXTRALONGHOLD:
-                    i = 30;
-                    break;
-            }
-            rot_enc_input = 0;
-        }
-
+    while(1) {
+        // clear lcd-buffer
         lcd_clrbuff();
-        
-        char tmp_str[16];
-        mprint_int(tmp_str, cid_rx>>16, 16, 4);
-        LCD_string(tmp_str, 20, 20, GLCD_ROTATE_0, GLCD_FONT_5x7, LCD_BLACK, 32);
-        mprint_int(tmp_str, cid_rx&0xFFFF, 16, 4);
-        LCD_string(tmp_str, 44, 20, GLCD_ROTATE_0, GLCD_FONT_5x7, LCD_BLACK, 32);
-        
-        LCD_string("Len:", 80, 20, GLCD_ROTATE_0, GLCD_FONT_5x7, LCD_BLACK, 32);
-        mprint_int(tmp_str, len_rx, 10, 1);
-        LCD_string(tmp_str, 104, 20, GLCD_ROTATE_0, GLCD_FONT_5x7, LCD_BLACK, 32);
 
-        u8 j;
-        for (j=0;j<4;j++) {
-            mprint_int(tmp_str, data_rx[j], 16, 4);
-            LCD_string(tmp_str, 10+j*28, 36, GLCD_ROTATE_0, GLCD_FONT_5x7, LCD_BLACK, 32);
+        // latch input from rotary-encoder (changed during IRQs)
+        u8 rot_enc_input_b = rot_enc_input;
+        rot_enc_input = 0;
+
+        // extra-long-press always gets you back to home-screen
+        if ((rot_enc_input_b == C_ROT_EXTRALONGHOLD) || (current_menu_fnc == NULL)) {
+            current_menu_fnc = &menu_fnc_homescreen;
+            rot_enc_input_b = 0;
         }
 
-        LCD_rect(0, 0, LCD_X-1, LCD_Y-1, LCD_BLACK, 0);
-        if (rtr_rx)
-            LCD_circle(100, 50, 5, LCD_BLACK);
-        LCD_string("ModAir", i, 10, GLCD_ROTATE_0, GLCD_FONT_5x7, LCD_BLACK, 32);
+        // call current menu-function and update next menu-function pointer
+        current_menu_fnc = (*current_menu_fnc)(rot_enc_input_b);
 
+        // copy lcd-buffer to lcd
         lcd_update();
-
         led_toggle();
-        //delay_ms(100);
     }
 }
+//==============================================================================
+//==============================================================================

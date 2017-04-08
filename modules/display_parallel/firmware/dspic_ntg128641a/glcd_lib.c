@@ -1,6 +1,5 @@
 #include "glcd_lib.h"
 
-#include "glcd.h"
 #include "glcd_font3x5.h"
 #include "glcd_font4x5.h"
 #include "glcd_font5x7.h"

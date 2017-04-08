@@ -1,7 +1,7 @@
 #include "rot_enc.h"
 
 volatile u8 rotpb_cnt = 0;
-volatile u8 rot_enc_input = 0;
+extern volatile u8 rot_enc_input;
 
 void rot_enc_irq(void)
 {
