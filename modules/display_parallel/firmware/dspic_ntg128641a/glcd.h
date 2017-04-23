@@ -25,8 +25,8 @@
 
 #include "common.h"
 
-#define LCD_X                   64
-#define LCD_Y                   128
+#define LCD_X                   128
+#define LCD_Y                   64
 #define LCD_WHITE               0
 #define LCD_BLACK               1
 
