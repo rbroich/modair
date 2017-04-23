@@ -53,6 +53,14 @@ void* menu_fnc_config(u8 key_input)
     LCD_string("SETTINGS", 2, 3, font_def);
     LCD_line(0, 8, LCD_X-1, 8, LCD_BLACK);
 
+    LCD_string("Exit", 10, 5+8*1, font_def);
+    LCD_string("Modules", 10, 5+8*2, font_def);
+    LCD_string("Home", 10, 5+8*3, font_def);
+    LCD_string("Menu", 10, 5+8*4, font_def);
+    LCD_string("Notes", 10, 5+8*5, font_def);
+    LCD_string("Debug Bus", 10, 5+8*6, font_def);
+    LCD_dot(3, 13+idx*8, 3, LCD_BLACK);
+
     switch(key_input) {
         case C_ROT_INC: idx++; if (idx>5) idx=5; break;
         case C_ROT_DEC: idx--; if (idx<0) idx=0; break;
@@ -68,15 +76,6 @@ void* menu_fnc_config(u8 key_input)
             idx=0;
             break;
     }
-
-    LCD_string("Exit", 10, 5+8*1, font_def);
-    LCD_string("Modules", 10, 5+8*2, font_def);
-    LCD_string("Home", 10, 5+8*3, font_def);
-    LCD_string("Menu", 10, 5+8*4, font_def);
-    LCD_string("Notes", 10, 5+8*5, font_def);
-    LCD_string("Debug Bus", 10, 5+8*6, font_def);
-    LCD_dot(3, 13+idx*8, 3, LCD_BLACK);
-
     return ret;
 }
 
