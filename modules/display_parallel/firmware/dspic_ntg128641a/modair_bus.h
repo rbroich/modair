@@ -8,25 +8,25 @@
 #define MA_MSGTYPE_MASK             0x0FF00000 // Message Type (see MT_* defines)
 
 // FRAME defines:
-#define MF_PKT_SINGLE               0x00000000 // SOF and EOF at the same time: we only expect a single data packet
-#define MF_PKT_START                0x00020000 // Start of Frame data, expect continued data next
-#define MF_PKT_CONT                 0x00030000 // Neither SOF nor EOF: continued data
-#define MF_PKT_END                  0x00010000 // End of Frame data: this was the last data packet
+#define MF_PKT_SINGLE               0x00 // SOF and EOF at the same time: we only expect a single data packet
+#define MF_PKT_START                0x02 // Start of Frame data, expect continued data next
+#define MF_PKT_CONT                 0x03 // Neither SOF nor EOF: continued data
+#define MF_PKT_END                  0x01 // End of Frame data: this was the last data packet
 
 // MSGTYPE defines: Message Types
-#define MT_BROADCAST_VALUE          0x00100000 // Periodic sensor broadcasts
-#define MT_BROADCAST_NAME           0x00200000 // ASCII name broadcast after powerup
-#define MT_BROADCAST_ERROR_MSG      0x00300000 // ASCII error message
-#define MT_BROADCAST_WARNING_MSG    0x00400000 // ASCII warning message
-#define MT_BROADCAST_INFO_MSG       0x00500000 // ASCII information message
-#define MT_TERMINAL_TXT             0x00600000 // ASCII text terminal / console / menu
-#define MT_DATA_CH                  0x00700000 // Data channel for Firmware / Configuration upload and download
-#define MT_REMOTE_CMD               0x01100000 // D<0:1> DESTINATION PARAM_ID (or DPI_* defines), D<2> CMD_CODE (see MC_* defines)
-#define MT_REMOTE_ACK               0x01200000 // D<0:1> DESTINATION PARAM_ID (or DPI_* defines), D<2> ACK_CODE (see MK_* defines)
+#define MT_BROADCAST_VALUE          0x01 // Periodic sensor broadcasts
+#define MT_BROADCAST_NAME           0x02 // ASCII name broadcast after powerup
+#define MT_BROADCAST_ERROR_MSG      0x03 // ASCII error message
+#define MT_BROADCAST_WARNING_MSG    0x04 // ASCII warning message
+#define MT_BROADCAST_INFO_MSG       0x05 // ASCII information message
+#define MT_TERMINAL_TXT             0x06 // ASCII text terminal / console / menu
+#define MT_DATA_CH                  0x07 // Data channel for Firmware / Configuration upload and download
+#define MT_REMOTE_CMD               0x11 // D<0:1> DESTINATION PARAM_ID (or DPI_* defines), D<2> CMD_CODE (see MC_* defines)
+#define MT_REMOTE_ACK               0x12 // D<0:1> DESTINATION PARAM_ID (or DPI_* defines), D<2> ACK_CODE (see MK_* defines)
 
 // DESTINATION PARAM_ID (unique ID for each module, sensor, and output), or one of these defines:
-#define DPI_ALL_PARAMETERS          0x0000FFFF // Addresses all parameters (virtual nodes hosted on a physical node)
-#define DPI_ALL_MODULES             0x0000FFFE // Addresses all modules (physical node)
+#define DPI_ALL_PARAMETERS          0xFFFF // Addresses all parameters (virtual nodes hosted on a physical node)
+#define DPI_ALL_MODULES             0xFFFE // Addresses all modules (physical node)
 
 // REMOTE_CMD defines: Remote Commands Codes (CMD_CODE)
 #define MC_GET_VALUE                0x00

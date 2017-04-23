@@ -22,5 +22,6 @@ typedef struct {
 #define WT_COMPASS         6
 
 void read_widgets(void);
+void draw_widgets(u8 home_screen);
 
 #endif

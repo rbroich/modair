@@ -33,3 +33,7 @@ void read_widgets(void)
     }
 }
 
+void draw_widgets(u8 home_screen)
+{
+    
+}

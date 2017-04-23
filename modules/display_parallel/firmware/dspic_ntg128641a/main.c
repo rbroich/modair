@@ -12,12 +12,21 @@
 #include "ecan_mod.h"
 #include "widgets.h"
 #include "menu_functions.h"
+#include "modair_bus.h"
+#include "heap.h"
 
 //==============================================================================
 //--------------------GLOBAL VARIABLES------------------------------------------
 //==============================================================================
+volatile __attribute__((far)) u16 heap_mem[HEAP_MEM_SIZE];
+volatile u8 heap_item_cnt = 0;
+volatile u8 heap_alloc = 0;
+
 volatile u8 rot_enc_input = 0;
 
+// use function pointers to navigate through the menu;
+// default screen after bootup: home screen
+void* (*current_menu_fnc)(u8) = &menu_fnc_homescreen;
 
 
 //==============================================================================
@@ -78,9 +87,49 @@ void irq_init(void)
 //==============================================================================
 //--------------------COMMUNICATIONS HANDLER------------------------------------
 //==============================================================================
-void ecan_rx(u32 cid, u8 len, u8 rtr, u16 *data)
+void ecan_rx(u16 pid, u16 *data, u8 msg_type, u8 flags, u8 len)
 {
+    if ((heap_alloc==HEAP_ALLOC_CANDEBUG)&&(heap_item_cnt<8)) { // Debug-Bus menu is active
+        s_can_debug* can_dbgs = (s_can_debug*)&heap_mem[0];
+        can_dbgs[heap_item_cnt].pid = pid;
+        can_dbgs[heap_item_cnt].d0 = data[0];
+        can_dbgs[heap_item_cnt].d2 = data[1];
+        can_dbgs[heap_item_cnt].d4 = data[2];
+        can_dbgs[heap_item_cnt].d6 = data[3];
+        can_dbgs[heap_item_cnt].msg_type = msg_type;
+        can_dbgs[heap_item_cnt].len = len;
+        can_dbgs[heap_item_cnt].flags = flags;
+        heap_item_cnt++;
+    }
 
+    switch (msg_type) {
+        case MT_BROADCAST_NAME:
+            if ((heap_alloc==HEAP_ALLOC_PIDNAME)&&(heap_item_cnt<MAX_PID_NAME_ITEMS)&&(flags==0)) {
+                s_pid_name* pid_names = (s_pid_name*)&heap_mem[0];
+                pid_names[heap_item_cnt].pid = pid;
+                pid_names[heap_item_cnt].u.nval[0] = data[0];
+                pid_names[heap_item_cnt].u.nval[1] = data[1];
+                pid_names[heap_item_cnt].u.nval[2] = data[2];
+                pid_names[heap_item_cnt].u.nval[3] = data[3];
+                if (len<8) // terminate string
+                    pid_names[heap_item_cnt].u.name[len] = 0x00;
+                heap_item_cnt++;
+            }
+            break;
+        case MT_TERMINAL_TXT:
+            if (heap_alloc==HEAP_ALLOC_CONSOLETXT) {
+                s_console_txt* console_txt = (s_console_txt*)&heap_mem[0];
+                if (console_txt->pid == pid) {
+                    if (flags==MF_PKT_START) {
+                        memset((char*)console_txt->txt, ' ', 16*4);
+                        heap_item_cnt=0;
+                    }
+                    memcpy((char*)&console_txt->txt[heap_item_cnt*8], (char*)&data[0], len);
+                    heap_item_cnt++;
+                }
+            }
+            break;
+    }
 }
 
 
@@ -101,10 +150,6 @@ int main(void)
 
     read_widgets();
 
-    // use function pointers to navigate through the menu;
-    // default screen after bootup: home screen
-    void* (*current_menu_fnc)(u8) = &menu_fnc_homescreen;
-
     while(1) {
         // clear lcd-buffer
         lcd_clrbuff();
@@ -116,6 +161,7 @@ int main(void)
         // extra-long-press always gets you back to home-screen
         if ((rot_enc_input_b == C_ROT_EXTRALONGHOLD) || (current_menu_fnc == NULL)) {
             current_menu_fnc = &menu_fnc_homescreen;
+            heap_alloc = HEAP_ALLOC_NONE; // deallocate heap
             rot_enc_input_b = 0;
         }
 

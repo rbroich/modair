@@ -31,6 +31,7 @@ void ecan_irq(void)
 
 u8 ecan_tx(u32 cid, u8 len, u8 rtr, u16 *data)
 {
+// TODO!!!!! buffer7 has highest natural priority... ensure REMOTE_MENU packets are not sent out of order!
     u8 use_tx_buf; // find the first empty transmit buffer
     if (_TXREQ0 == 0)
         use_tx_buf = 0;
