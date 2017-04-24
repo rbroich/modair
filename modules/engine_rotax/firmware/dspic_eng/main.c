@@ -11,11 +11,31 @@
 #include "fuelflow.h"
 #include "analog.h"
 #include "thermocouple.h"
+#include "modair_bus.h"
+#include "params.h"
 
 //==============================================================================
 //--------------------GLOBAL VARIABLES------------------------------------------
 //==============================================================================
+// TODO: make this a constant stored in flash
+#define THIS_MODULE_ID 0xFF02
+#define THIS_MODULE_NAME "Rotax582"
 
+#define PARAM_CNT 12
+const s_param_settings PARAM_LIST[PARAM_CNT] = {
+    {.pid=0x0010, .name="BUS VOLT", .rate=0x20, .console_fnc_ptr=0},
+    {.pid=0x0011, .name="EGT 1   ", .rate=0x20, .console_fnc_ptr=0},
+    {.pid=0x0012, .name="EGT 2   ", .rate=0x20, .console_fnc_ptr=0},
+    {.pid=0x0013, .name="RPM     ", .rate=0x20, .console_fnc_ptr=0},
+    {.pid=0x0014, .name="ENG HRS ", .rate=0x20, .console_fnc_ptr=0},
+    {.pid=0x0015, .name="ENG ON  ", .rate=0x20, .console_fnc_ptr=0},
+    {.pid=0x0016, .name="MAINTAIN", .rate=0x20, .console_fnc_ptr=0},
+    {.pid=0x0017, .name="FUEL LVL", .rate=0x20, .console_fnc_ptr=0},
+    {.pid=0x0018, .name="H2O TEMP", .rate=0x20, .console_fnc_ptr=0},
+    {.pid=0x0019, .name="RELAY   ", .rate=0x20, .console_fnc_ptr=0},
+    {.pid=0x001A, .name="OD1 OUT ", .rate=0x20, .console_fnc_ptr=0},
+    {.pid=0x001B, .name="OD2 OUT ", .rate=0x20, .console_fnc_ptr=0}
+};
 
 
 
@@ -80,9 +100,24 @@ void irq_init(void)
 
 
 
-void ecan_rx(u32 cid, u8 len, u8 rtr, u16 *data)
+void ecan_rx(u16 pid, u16 *data, u8 msg_type, u8 flags, u8 len)
 {
-    
+    u8 i;
+    u8* dptr = (u8*)data;
+
+    if ((msg_type==MT_REMOTE_CMD)&&(dptr[2]==MC_GET_NAME)&&(flags==0)&&(len==3)) {
+        if ((data[0]==DPI_ALL_PARAMETERS)||(data[0]==THIS_MODULE_ID))
+            for (i=0;i<PARAM_CNT;i++) // send all parameter ID names of this module
+                ecan_tx_str(PARAM_LIST[i].pid, PARAM_LIST[i].name, MT_BROADCAST_NAME, 8);
+        if (data[0]==DPI_ALL_MODULES) // send this module name
+            ecan_tx_str(THIS_MODULE_ID, THIS_MODULE_NAME, MT_BROADCAST_NAME, 8);
+    }
+    if ((msg_type==MT_REMOTE_CMD)&&(dptr[2]==MC_TERMINAL_KEY)&&(flags==0)&&(len==4)) {
+        if (data[0]==THIS_MODULE_ID) {
+            //process KEYSTROKE dptr[3], and return updated console text
+            ecan_tx_console(THIS_MODULE_ID,"                  Hi                                     test   ");
+        }
+    }
 }
 
 
@@ -106,12 +141,7 @@ int main(void)
     tmr1_init(50); // 50 Hz == 20 ms ticks
     irq_init();
 
-    u16 tmp_data[4];
-	tmp_data[0] = 0x0111; // data
-	tmp_data[1] = 0x2222;
-	tmp_data[2] = 0x5678;
-	tmp_data[3] = 0xdddd;
-    ecan_tx(0x19532408,8,0,tmp_data);
+    ecan_tx(0x1234, 'H' | 'e'<<8, 'l' | 'l'<<8, 'o' | ' '<<8, '1' | '2'<<8, MT_BROADCAST_NAME, 0, 8);
 
     while(1)
     {
@@ -119,12 +149,7 @@ int main(void)
 
         delay_ms(220);
 
-        tmp_data[0] = rpm_read();
-        tmp_data[1] = thermocouple_read(0);
-        tmp_data[2] = analog_read_fuellevel();
-        tmp_data[3] = analog_read_inputvoltage();
-        ecan_tx(12,8,0,tmp_data);
-        
+        //ecan_tx(0x1234, rpm_read(), thermocouple_read(0), analog_read_fuellevel(), analog_read_inputvoltage(), MT_BROADCAST_VALUE, 0, 8);
         // Bus Voltage
         // Thermocouple 1
         // Thermocouple 2

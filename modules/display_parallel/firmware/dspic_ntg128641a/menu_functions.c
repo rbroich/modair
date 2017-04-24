@@ -14,7 +14,6 @@
 #define THIS_MODULE_ID 0xFF02
 
 s16 idx = 0;
-char tmp_str[16];
 extern volatile u16 heap_mem[HEAP_MEM_SIZE];
 extern volatile u8 heap_item_cnt;
 extern volatile u8 heap_alloc;
@@ -165,6 +164,7 @@ void* menu_fnc_accessconsole(u8 key_input)
     LCD_string("CONSOLE", 2, 3, font_def);
     if (heap_alloc != HEAP_ALLOC_CONSOLETXT)
         return 0;
+    char tmp_str[16];
     mprint_int(tmp_str, console_txt->pid, 16, 4);
     LCD_string(tmp_str, 10+8*6, 3, GLCD_ROTATE_0,GLCD_FONT_5x7,LCD_BLACK,4);
     LCD_line(0, 8, LCD_X-1, 8, LCD_BLACK);
@@ -212,6 +212,7 @@ void print_pid_names(void)
 {
     s_pid_name* pid_names = (s_pid_name*)&heap_mem[0];
     u8 i=0, j=1;
+    char tmp_str[16];
     u8 page = idx / 7;
     if (page==0) {
         LCD_string("Exit", 10, 3+8*1, font_def);
@@ -328,7 +329,8 @@ void* menu_fnc_editnotes(u8 key_input)
 
 void* menu_fnc_debugbus(u8 key_input)
 {
-    u8 i;
+    u8 i,j;
+    char tmp_str[20];
     s_can_debug* can_dbgs = (s_can_debug*)&heap_mem[0];
     for (i=0;i<heap_item_cnt;i++) {
         mprint_int(tmp_str, can_dbgs[i].pid, 16, 4);
@@ -336,20 +338,35 @@ void* menu_fnc_debugbus(u8 key_input)
         LCD_char('/', 2+4*6, 3+8*i, GLCD_ROTATE_0,GLCD_FONT_5x7,LCD_BLACK);
         mprint_int(tmp_str, can_dbgs[i].msg_type, 16, 2);
         LCD_string(tmp_str, 2+5*6, 3+8*i, GLCD_ROTATE_0,GLCD_FONT_5x7,LCD_BLACK,2);
-        LCD_char(':', 2+7*6, 3+8*i, GLCD_ROTATE_0,GLCD_FONT_5x7,LCD_BLACK);
-        mprint_int(tmp_str, can_dbgs[i].d0, 16, 4);
-        LCD_string(tmp_str, 2*1+8*6+0*4, 3+8*i, GLCD_ROTATE_0,GLCD_FONT_3x5,LCD_BLACK,4);
-        mprint_int(tmp_str, can_dbgs[i].d2, 16, 4);
-        LCD_string(tmp_str, 2*2+8*6+4*4, 3+8*i, GLCD_ROTATE_0,GLCD_FONT_3x5,LCD_BLACK,4);
-        mprint_int(tmp_str, can_dbgs[i].d4, 16, 4);
-        LCD_string(tmp_str, 2*3+8*6+8*4, 3+8*i, GLCD_ROTATE_0,GLCD_FONT_3x5,LCD_BLACK,4);
-        mprint_int(tmp_str, can_dbgs[i].d6, 16, 4);
-        LCD_string(tmp_str, 2*4+8*6+12*4, 3+8*i, GLCD_ROTATE_0,GLCD_FONT_3x5,LCD_BLACK,4);
-        // TODO: len, flags
+
+        mprint_int(&tmp_str[0], can_dbgs[i].d0, 16, 4);
+        mprint_int(&tmp_str[4], can_dbgs[i].d2, 16, 4);
+        mprint_int(&tmp_str[8], can_dbgs[i].d4, 16, 4);
+        mprint_int(&tmp_str[12], can_dbgs[i].d6, 16, 4);
+        for (j=0;j<can_dbgs[i].len;j++) {
+            LCD_string(&tmp_str[j*2], 2+7*6+j*9, 3+8*i, GLCD_ROTATE_0,GLCD_FONT_4x5,LCD_BLACK,2);
+        }
+        lcd_setpixel(119,2+8*i,LCD_BLACK);
+        lcd_setpixel(119,3+8*i,LCD_BLACK);
+        lcd_setpixel(119,4+8*i,LCD_BLACK);
+        if (!(can_dbgs[i].flags & ECAN_FLAGS_nSOF))
+            lcd_setpixel(120,3+8*i,LCD_BLACK);
+        if (!(can_dbgs[i].flags & ECAN_FLAGS_nEOF))
+            lcd_setpixel(121,3+8*i,LCD_BLACK);
+        lcd_setpixel(122,2+8*i,LCD_BLACK);
+        lcd_setpixel(122,3+8*i,LCD_BLACK);
+        lcd_setpixel(122,4+8*i,LCD_BLACK);
+        if (can_dbgs[i].flags & ECAN_FLAGS_RTR)
+            lcd_setpixel(125,3+8*i,LCD_BLACK);
     }
+    if ((idx)&&(heap_item_cnt==8)) // auto-reset
+        heap_item_cnt = 0;
     switch(key_input) {
         case C_ROT_INC:
+            idx=1;
+            break;
         case C_ROT_DEC:
+            idx=0;
             heap_item_cnt = 0;
             break;
         case C_ROT_PUSH:
