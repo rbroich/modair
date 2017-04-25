@@ -9,6 +9,12 @@ s16 mpow(s16 x, s16 exp)
     return(number);
 }
 
+void strcopy(char *dest, char *src)
+{
+    while (*src != 0) // copy without termination
+        *dest++ = *src++;
+}
+
 char *mprint_int(char *s, s16 n, s16 base, s16 digits)
 {
     s16 i;

@@ -34,7 +34,7 @@ void ecan_tx_console(u16 pid, char *str)
             (_TXREQ4)||(_TXREQ5)||(_TXREQ6)||(_TXREQ7))
         ; // wait for all 8 transmit buffers to become available
     u8 i;
-    if (strlen(str) == 16*4) {
+    if (str) {
         // Ensure packets are sent in order...
 
         // START packet: TX7 has highest natural priority
@@ -71,6 +71,7 @@ void ecan_tx_console(u16 pid, char *str)
         ecan_buf[7][1] = ((pid&0xFFC0)>>6) | (MF_PKT_SINGLE<<10);
         ecan_buf[7][2] = ((pid&0x003F)<<10) | 1; // 1 data byte
         ecan_buf[7][3] = 0x00; // 0x00 == terminate string
+        _TXREQ7=1; // transmit buffer 7
     }
 }
 

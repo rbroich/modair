@@ -13,16 +13,15 @@
 #include "thermocouple.h"
 #include "modair_bus.h"
 #include "params.h"
+#include "module_console.h"
 
 //==============================================================================
 //--------------------GLOBAL VARIABLES------------------------------------------
 //==============================================================================
-// TODO: make this a constant stored in flash
-#define THIS_MODULE_ID 0xFF02
-#define THIS_MODULE_NAME "Rotax582"
+extern u16 THIS_MODULE_ID;
 
 #define PARAM_CNT 12
-const s_param_settings PARAM_LIST[PARAM_CNT] = {
+s_param_settings PARAM_LIST[PARAM_CNT] = {
     {.pid=0x0010, .name="BUS VOLT", .rate=0x20, .console_fnc_ptr=0},
     {.pid=0x0011, .name="EGT 1   ", .rate=0x20, .console_fnc_ptr=0},
     {.pid=0x0012, .name="EGT 2   ", .rate=0x20, .console_fnc_ptr=0},
@@ -38,7 +37,6 @@ const s_param_settings PARAM_LIST[PARAM_CNT] = {
 };
 
 
-
 //==============================================================================
 //--------------------INTERRUPTS------------------------------------------------
 //==============================================================================
@@ -51,6 +49,7 @@ void __attribute__((interrupt, auto_psv)) _T1Interrupt(void)
 void __attribute__((interrupt, auto_psv)) _CNInterrupt(void)
 {
     fuelflow_irq();
+    rpm_irq();
     _CNIF = 0;  // clear the interrupt
 }
 
@@ -64,6 +63,21 @@ void __attribute__((interrupt, auto_psv)) _AD1Interrupt(void)
 {
     analog_irq();
     _AD1IF = 0;  // clear the interrupt
+}
+
+void ecan_rx(u16 pid, u16 *data, u8 msg_type, u8 flags, u8 len)
+{
+    module_console_canrx(pid,data,msg_type,flags,len);
+
+
+    // Handle incoming CAN messages; don't send messages from this IRQ
+    u8 i;
+    u8* dptr = (u8*)data;
+
+    if ((msg_type==MT_REMOTE_CMD)&&(dptr[2]==MC_GET_NAME)&&(flags==0)&&(len==3))
+        if ((data[0]==DPI_ALL_PARAMETERS)||(data[0]==THIS_MODULE_ID))
+            for (i=0;i<PARAM_CNT;i++) // send all parameter ID names of this module
+                ecan_tx_str(PARAM_LIST[i].pid, PARAM_LIST[i].name, MT_BROADCAST_NAME, 8);
 }
 
 //==============================================================================
@@ -94,34 +108,10 @@ void irq_init(void)
     _CNIE = ENABLE; // change notification interrupt enable
 }
 
+
 //==============================================================================
 //--------------------MAIN LOOP-------------------------------------------------
 //==============================================================================
-
-
-
-void ecan_rx(u16 pid, u16 *data, u8 msg_type, u8 flags, u8 len)
-{
-    u8 i;
-    u8* dptr = (u8*)data;
-
-    if ((msg_type==MT_REMOTE_CMD)&&(dptr[2]==MC_GET_NAME)&&(flags==0)&&(len==3)) {
-        if ((data[0]==DPI_ALL_PARAMETERS)||(data[0]==THIS_MODULE_ID))
-            for (i=0;i<PARAM_CNT;i++) // send all parameter ID names of this module
-                ecan_tx_str(PARAM_LIST[i].pid, PARAM_LIST[i].name, MT_BROADCAST_NAME, 8);
-        if (data[0]==DPI_ALL_MODULES) // send this module name
-            ecan_tx_str(THIS_MODULE_ID, THIS_MODULE_NAME, MT_BROADCAST_NAME, 8);
-    }
-    if ((msg_type==MT_REMOTE_CMD)&&(dptr[2]==MC_TERMINAL_KEY)&&(flags==0)&&(len==4)) {
-        if (data[0]==THIS_MODULE_ID) {
-            //process KEYSTROKE dptr[3], and return updated console text
-            ecan_tx_console(THIS_MODULE_ID,"                  Hi                                     test   ");
-        }
-    }
-}
-
-
-
 int main(void)
 {
     OSCTUN = 0; // 7.37 MHz
@@ -147,7 +137,9 @@ int main(void)
     {
         led_toggle();
 
-        delay_ms(220);
+        //delay_ms(220);
+
+        module_console_process();
 
         //ecan_tx(0x1234, rpm_read(), thermocouple_read(0), analog_read_fuellevel(), analog_read_inputvoltage(), MT_BROADCAST_VALUE, 0, 8);
         // Bus Voltage

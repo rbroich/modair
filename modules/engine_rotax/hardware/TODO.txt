@@ -1,3 +1,6 @@
 change CAN transceiver to SMD
 
-cable mounting?
+cable mounting? move screw terminals closer to edge of box, and shorten PCB on that side.
+Ensure no THP and ideally no top-layer routes between screw terminal and edge of PCB. Add holes for cable tie to hold down cables?
+
+add capacitor from RPM_IRQ to GND?

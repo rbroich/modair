@@ -166,8 +166,9 @@ void* menu_fnc_accessconsole(u8 key_input)
         return 0;
     char tmp_str[16];
     mprint_int(tmp_str, console_txt->pid, 16, 4);
-    LCD_string(tmp_str, 10+8*6, 3, GLCD_ROTATE_0,GLCD_FONT_5x7,LCD_BLACK,4);
+    LCD_string(tmp_str, 10+7*6, 3, GLCD_ROTATE_0,GLCD_FONT_5x7,LCD_BLACK,4);
     LCD_line(0, 8, LCD_X-1, 8, LCD_BLACK);
+    LCD_rect(6, 11, 8+16*6, 13+4*8, LCD_BLACK, 0);
 
     if (console_txt->txt[0]) {
         // print the remote console
@@ -175,7 +176,7 @@ void* menu_fnc_accessconsole(u8 key_input)
         LCD_string(&console_txt->txt[16], 10, 8+8*2, GLCD_ROTATE_0,GLCD_FONT_5x7,LCD_BLACK,16);
         LCD_string(&console_txt->txt[32], 10, 8+8*3, GLCD_ROTATE_0,GLCD_FONT_5x7,LCD_BLACK,16);
         LCD_string(&console_txt->txt[48], 10, 8+8*4, GLCD_ROTATE_0,GLCD_FONT_5x7,LCD_BLACK,16);
-    } else return &menu_fnc_viewmodules;
+    } else return &menu_fnc_homescreen; // exit to home screen
 
     if (key_input) { // send the KEYCODE to the selected module
         ecan_tx(THIS_MODULE_ID, console_txt->pid, MC_TERMINAL_KEY | (key_input<<8), 0, 0, MT_REMOTE_CMD, 0, 4);
@@ -197,9 +198,13 @@ void* menu_fnc_viewparams(u8 key_input)
             } else {
                 ret = &menu_fnc_accessconsole;
                 s_pid_name* pid_names = (s_pid_name*)&heap_mem[0];
+                s_console_txt* console_txt = (s_console_txt*)&heap_mem[0];
+                console_txt->pid = pid_names[idx-1].pid;
+                memset((char*)console_txt->txt, ' ', 16*4);
                 // send a TERMINAL_KEY request to the selected parameter (with KEYSTROKE==0x00) to bring up the menu
-                ecan_tx(THIS_MODULE_ID, pid_names[idx-1].pid, MC_TERMINAL_KEY | (0x00<<8), 0, 0, MT_REMOTE_CMD, 0, 4);
+                ecan_tx(THIS_MODULE_ID, console_txt->pid, MC_TERMINAL_KEY | (0x00<<8), 0, 0, MT_REMOTE_CMD, 0, 4);
                 heap_item_cnt = 0; // reset current list counter
+                heap_alloc = HEAP_ALLOC_CONSOLETXT; // allocate heap memory
             }
             idx=0;
             break;

@@ -27,6 +27,7 @@ void __delay32(u32 cycles);
 #define delay_ms(ms)            __delay32((u32)ms * F_CY / 1000.0)
 
 int mpow(int x, int exp);
+void strcopy(char *dest, char *src);
 char *mprint_int(char *s, int n, int base, int digits);
 char *mprint_float(char *str, float val, int pre_digits, int post_digits);
 

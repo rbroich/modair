@@ -54,5 +54,14 @@
 #define MK_DONE                     0x02
 #define MK_ERROR                    0xFF
 
+// MC_TERMINAL_KEY defines: Rotary Encoder Keycodes
+#define TK_ROT_INC                  0x81
+#define TK_ROT_DEC                  0x82
+#define TK_ROT_HOLD_INC             0x83
+#define TK_ROT_HOLD_DEC             0x84
+#define TK_ROT_PUSH                 0x85
+#define TK_ROT_HOLD                 0x86
+#define TK_ROT_LONGHOLD             0x87
+#define TK_ROT_EXTRALONGHOLD        0x88
 
 #endif

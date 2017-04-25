@@ -120,12 +120,14 @@ void ecan_rx(u16 pid, u16 *data, u8 msg_type, u8 flags, u8 len)
             if (heap_alloc==HEAP_ALLOC_CONSOLETXT) {
                 s_console_txt* console_txt = (s_console_txt*)&heap_mem[0];
                 if (console_txt->pid == pid) {
-                    if (flags==MF_PKT_START) {
+                    if (!(flags&0x01)) { // MF_PKT_SINGLE or MF_PKT_START
                         memset((char*)console_txt->txt, ' ', 16*4);
                         heap_item_cnt=0;
                     }
-                    memcpy((char*)&console_txt->txt[heap_item_cnt*8], (char*)&data[0], len);
-                    heap_item_cnt++;
+                    if (heap_item_cnt<8) {
+                        memcpy((char*)&console_txt->txt[heap_item_cnt*8], (char*)&data[0], len);
+                        heap_item_cnt++;
+                    }
                 }
             }
             break;
