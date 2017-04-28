@@ -1,4 +1,8 @@
 #include "analog.h"
+#include "led.h"
+#include "relay.h"
+#include "opendrain.h"
+#include "enginehours.h"
 
 u16 adc_val_vin;
 u16 adc_val_ntc;
@@ -9,6 +13,13 @@ void analog_irq(void)
     adc_val_vin = ADC1BUF0; // AN0 == VIN
     adc_val_ntc = ADC1BUF1; // AN1 == Water Temperature (NTC)
     adc_val_fl = ADC1BUF2; // AN5 == Fuel Level (FL)
+    if (adc_val_vin < 6*79) { // if VIN < 6.0V
+        LED1 = 0; // switch off OUTPUTS to save power
+        RELAY1 = 0;
+        OPENDRAIN1 = 0;
+        OPENDRAIN2 = 0;
+        enginehours_vinlost_irq(); // trigger IRQ for VIN lost
+    }
 }
 
 void analog_init(void)
@@ -44,7 +55,5 @@ u16 analog_read_watertemp(void)
 
 u16 analog_read_inputvoltage(void)
 {
-    float voltage = adc_val_vin * 3.3/4095.0;
-    float vdivider = voltage * (22.0+1.5)/1.5;
-    return vdivider * 10.0; // 0.1 V resolution
+    return adc_val_vin;
 }

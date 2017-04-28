@@ -1,13 +1,13 @@
 #include "common.h"
 
 
-u8 linear_interpolate(u16 x, u16 x0, u16 x1, u8 y0, u8 y1)
+s16 linear_interpolate(u16 x, u16 x0, u16 x1, s16 y0, s16 y1)
 {
-    s16 sub_xx0 = x-x0;
-    s16 subx1x0 = x1-x0;
-    s16 suby1y0 = y1-y0;
-    s16 mul0 = suby1y0*sub_xx0;
-    s16 div0 = mul0/subx1x0;
+    s32 sub_xx0 = x-x0;
+    s32 subx1x0 = x1-x0;
+    s32 suby1y0 = y1-y0;
+    s32 mul0 = suby1y0*sub_xx0;
+    s32 div0 = mul0/subx1x0;
     return (y0 + div0);
 }
 

@@ -1,4 +1,69 @@
 #include "thermocouple.h"
+#include "params.h"
+#include "ecan_mod.h"
+#include "modair_bus.h"
+
+extern const s_param_settings PARAM_LIST[PARAM_CNT];
+//u8 thermocouple_status = 0;
+
+void thermocouple_ecanrx(u8 idx, u16 pid, u16 *data, u8 msg_type, u8 flags, u8 len)
+{
+    u8* dptr = (u8*)data;
+    if ((msg_type==MT_REMOTE_CMD)&&(data[0]==PARAM_LIST[idx].pid)) {
+        if (flags==0) {
+            // Name request
+            if ((dptr[2]==MC_GET_NAME)&&(len==3))
+                ecan_tx_str(PARAM_LIST[idx].pid, (char*)PARAM_LIST[idx].name, MT_BROADCAST_NAME, 8);
+            // Value request
+            if ((dptr[2]==MC_GET_VALUE)&&(len==3))
+                thermocouple_cntdwn(idx);
+            // Terminal keystroke
+            if ((dptr[2]==MC_TERMINAL_KEY)&&(len==4))
+                thermocouple_fnc_homescreen(idx, dptr[3]);
+                // current_menu_fnc = (*current_menu_fnc)(dptr[3]); // can remote console function
+        }
+    }
+}
+
+void thermocouple_cntdwn(u8 idx)
+{
+    // Read value from either TC0 or TC1 (based on idx)
+    u16 tmp_val = thermocouple_read(idx&0x1);
+    // Bit D14-D3 is the 12-bit temperature reading in 0.25 degree C steps
+    // Bit D2 is normally low, and goes high if the thermocouple input is open / disconnected (functinality expects T- to be grounded)
+    // Bit D15 and D1 should always be low
+    // Bit D0 is high impedance
+    if ((tmp_val&0x04)||(tmp_val&0x02)||(tmp_val&0x8000)) {
+        //thermocouple_status |= (1<<(idx&0x1));
+        return;
+    }
+    tmp_val = tmp_val >> 3; // get rid of the lower 3 bits
+    float tmp_f = (float)tmp_val / 4.0; // convert to degree's C
+    ecan_tx_float(PARAM_LIST[idx].pid, MT_BROADCAST_VALUE, tmp_f); // Send value
+}
+
+void thermocouple_fnc_homescreen(u8 idx, u8 key_input)
+{
+    // first process key input
+    switch(key_input) {
+        case TK_ROT_PUSH: // send Console EXIT
+            ecan_tx_console(PARAM_LIST[idx].pid, 0);
+            return;
+    }
+    // then print updated console text
+    int i;
+    char rtxt[16*4];
+    for (i=0;i<16*4;i++) rtxt[i] = ' ';
+    strcopy(&rtxt[1+0*16], "Raw Values:");
+    u16 tmp_val = thermocouple_read(idx&0x1);
+    rtxt[2+1*16] = '0';
+    rtxt[3+1*16] = 'x';
+    mprint_int(&rtxt[4+1*16], tmp_val, 16, 4);
+    tmp_val = tmp_val >> 3; // get rid of the lower 3 bits
+    float tmp_f = (float)tmp_val / 4.0; // convert to degree's C
+    mprint_float(&rtxt[2+2*16], tmp_f, 0, 2);
+    ecan_tx_console(PARAM_LIST[idx].pid, rtxt);
+}
 
 void thermocouple_init(void)
 {
@@ -19,8 +84,7 @@ void thermocouple_init(void)
 
 u16 thermocouple_read(u8 tc_index)
 {
-    // Conversion time: 0.22 seconds each (triggered by CS going high)
-
+    // Conversion time: min 0.22 seconds each (triggered by CS going high)
     if (tc_index==0)
         TC_nCS1 = 0;
     else TC_nCS2 = 0; // CS going low stops any active conversion
@@ -34,11 +98,7 @@ u16 thermocouple_read(u8 tc_index)
 
     if (tc_index==0)
         TC_nCS1 = 1;
-    else TC_nCS2 = 1; // trigger next conversion (0.22 sec)
-
-    if (tmp & 0b100) // thermocouple open if bit set
-        return 0;
-    tmp = tmp >> 3;
+    else TC_nCS2 = 1; // trigger next conversion
 
     return tmp;
 }

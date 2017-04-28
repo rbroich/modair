@@ -3,7 +3,7 @@
 u16 ff_accum = 0;
 u16 ff_inst = 0;
 
-void fuelflow_irq(void)
+void fuelflow_cn_irq(void)
 {
     static u8 old_val = 1;
     u16 curr_val = FF_IRQ;

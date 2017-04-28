@@ -14,6 +14,11 @@
 #include "modair_bus.h"
 #include "params.h"
 #include "module_console.h"
+#include "fuellevel.h"
+#include "busvoltage.h"
+#include "enginehours.h"
+#include "opendrain.h"
+#include "watertemp.h"
 
 //==============================================================================
 //--------------------GLOBAL VARIABLES------------------------------------------
@@ -27,35 +32,59 @@ u16 rate_cnt[PARAM_CNT];
 // TODO: make this constant is stored in flash (such that it is rewritable)
 __attribute__((aligned(FLASH_PAGE_SIZE))) const s_param_settings PARAM_LIST[PARAM_CNT] = {
     {.pid=0xFF02, .name="Rotax582", .rate=0}, // MODULE
-    {.pid=0x0010, .name="BUS VOLT", .rate=0x20},
-    {.pid=0x0011, .name="EGT 1   ", .rate=0x20},
-    {.pid=0x0012, .name="EGT 2   ", .rate=0x20},
-    {.pid=0x0013, .name="RPM     ", .rate=0x20},
-    {.pid=0x0014, .name="ENG HRS ", .rate=0x20},
-    {.pid=0x0015, .name="ENG ON  ", .rate=0x20},
-    {.pid=0x0016, .name="MAINTAIN", .rate=0x20},
-    {.pid=0x0017, .name="FUEL LVL", .rate=0x20},
-    {.pid=0x0018, .name="H2O TEMP", .rate=0x20},
-    {.pid=0x0019, .name="RELAY   ", .rate=0x20},
-    {.pid=0x001A, .name="OD1 OUT ", .rate=0x20},
-    {.pid=0x001B, .name="OD2 OUT ", .rate=0x20}
+    {.pid=0x0010, .name="BUS VOLT", .rate=50}, // 1 Hz
+    {.pid=0x0011, .name="EGT 1   ", .rate=12}, // ~4 Hz
+    {.pid=0x0012, .name="EGT 2   ", .rate=12}, // ~4 Hz
+    {.pid=0x0013, .name="RPM     ", .rate=25}, // 2 Hz
+    {.pid=0x0014, .name="ENG HRS ", .rate=50}, // 1 Hz
+    {.pid=0x0015, .name="ENG ON  ", .rate=50}, // 1 Hz
+    {.pid=0x0016, .name="MAINTAIN", .rate=50}, // 1 Hz
+    {.pid=0x0017, .name="FUEL LVL", .rate=10}, // 5 Hz
+    {.pid=0x0018, .name="H2O TEMP", .rate=10}, // 5 Hz
+    {.pid=0x0019, .name="RELAY   ", .rate=0},
+    {.pid=0x001A, .name="OD1 OUT ", .rate=0},
+    {.pid=0x001B, .name="OD2 OUT ", .rate=0},
+    {.pid=0x001C, .name="FF INST ", .rate=10}, // 5 Hz
+    {.pid=0x001D, .name="FF AVE  ", .rate=10}, // 5 Hz
+    {.pid=0x001E, .name="FUEL END", .rate=25}, // 2 Hz
+    {.pid=0x001F, .name="FUEL RNG", .rate=25}, // 2 Hz
+    {.pid=0x0020, .name="FUEL USE", .rate=25}  // 2 Hz
 };
 
 const s_param_const PARAM_CONST[PARAM_CNT] = {
     {.canrx_fnc_ptr=&module_ecanrx, .cntdwn_fnc_ptr=0}, // MODULE
-    {.canrx_fnc_ptr=0, .cntdwn_fnc_ptr=0},
-    {.canrx_fnc_ptr=0, .cntdwn_fnc_ptr=0},
-    {.canrx_fnc_ptr=0, .cntdwn_fnc_ptr=0},
-    {.canrx_fnc_ptr=0, .cntdwn_fnc_ptr=0},
-    {.canrx_fnc_ptr=0, .cntdwn_fnc_ptr=0},
-    {.canrx_fnc_ptr=0, .cntdwn_fnc_ptr=0},
-    {.canrx_fnc_ptr=0, .cntdwn_fnc_ptr=0},
-    {.canrx_fnc_ptr=0, .cntdwn_fnc_ptr=0},
-    {.canrx_fnc_ptr=0, .cntdwn_fnc_ptr=0},
-    {.canrx_fnc_ptr=0, .cntdwn_fnc_ptr=0},
-    {.canrx_fnc_ptr=0, .cntdwn_fnc_ptr=0},
-    {.canrx_fnc_ptr=0, .cntdwn_fnc_ptr=0}
+    {.canrx_fnc_ptr=&busvoltage_ecanrx, .cntdwn_fnc_ptr=&busvoltage_cntdwn}, // Bus Voltage
+    {.canrx_fnc_ptr=&thermocouple_ecanrx, .cntdwn_fnc_ptr=&thermocouple_cntdwn}, // Thermocouple 1
+    {.canrx_fnc_ptr=&thermocouple_ecanrx, .cntdwn_fnc_ptr=&thermocouple_cntdwn}, // Thermocouple 2
+    {.canrx_fnc_ptr=&rpm_ecanrx, .cntdwn_fnc_ptr=&rpm_cntdwn}, // RPM
+    {.canrx_fnc_ptr=0, .cntdwn_fnc_ptr=0}, // Engine Hours / Hobbs Meter
+    {.canrx_fnc_ptr=0, .cntdwn_fnc_ptr=0}, // Engine On Time since started
+    {.canrx_fnc_ptr=0, .cntdwn_fnc_ptr=0}, // Maintenance Timer
+    {.canrx_fnc_ptr=&fuellevel_ecanrx, .cntdwn_fnc_ptr=&fuellevel_cntdwn}, // Fuel Level
+    {.canrx_fnc_ptr=&watertemp_ecanrx, .cntdwn_fnc_ptr=&watertemp_cntdwn}, // Water Temperature
+    {.canrx_fnc_ptr=0, .cntdwn_fnc_ptr=0}, // Relay Output
+    {.canrx_fnc_ptr=0, .cntdwn_fnc_ptr=0}, // Open Drain 1 Output
+    {.canrx_fnc_ptr=0, .cntdwn_fnc_ptr=0}, // Open Drain 2 Output
+    {.canrx_fnc_ptr=0, .cntdwn_fnc_ptr=0}, // Fuel Flow Instantaneous
+    {.canrx_fnc_ptr=0, .cntdwn_fnc_ptr=0}, // Fuel Flow Average since started
+    {.canrx_fnc_ptr=0, .cntdwn_fnc_ptr=0}, // Time to Empty Tank (fuel endurance)
+    {.canrx_fnc_ptr=0, .cntdwn_fnc_ptr=0}, // Range to Empty Tank (fuel range)
+    {.canrx_fnc_ptr=0, .cntdwn_fnc_ptr=0}  // Fuel Burned
 };
+
+const s_fuelcal fuellevel_rom = { // converts ADC value to fuel level in 0.01 liter
+    .FLx = {0,360,700,975,1203,1400,1590,1750,1900,2030,2150,2250,2350,2435,2510,2600},
+    .FLy = {0,300,647,982,1310,1637,2000,2353,2730,3099,3487,3845,4249,4626,4995,5488}
+};
+
+const s_watertemp watertemp_rom = { // converts ADC value to water temperature in 0.1 degrees
+    .WTx = {0,41,72,126,239,360,638,1154,3320,3740,3892,3986,4095,4095,4095,4095},
+    .WTy = {2000,1800,1500,1240,1000,840,650,440,-40,-190,-300,-400,-500,-500,-500,-500}
+};
+
+const u16 rmp_mul = 20; // CNTs per 0.5s => 2.0 (cnts/sec) * 60.0 (cnts/min) / 6.0 (rotax582 setting?)
+const float engine_hobbs = 1202.4;
+const float maintainance_cntdwn = 50.0;
 
 //==============================================================================
 //--------------------INTERRUPTS------------------------------------------------
@@ -66,13 +95,15 @@ void __attribute__((interrupt, auto_psv)) _T1Interrupt(void)
     for (i=1;i<PARAM_CNT;i++)
         if (rate_cnt[i])
             rate_cnt[i]--;
+    enginehours_tmr_irq();
+    rpm_tmr_irq();
     _T1IF = 0;  // clear the interrupt
 }
 
 void __attribute__((interrupt, auto_psv)) _CNInterrupt(void)
 {
-    fuelflow_irq();
-    rpm_irq();
+    fuelflow_cn_irq();
+    rpm_cn_irq();
     _CNIF = 0;  // clear the interrupt
 }
 
@@ -122,7 +153,9 @@ int main(void)
     // Call Parameter Init functions
     module_init();
     led_init();
+    opendrain_init();
     ecan_init();
+    enginehours_init();
     thermocouple_init();
     relay_init();
     fuelflow_init();
@@ -143,24 +176,5 @@ int main(void)
                     PARAM_CONST[i].cntdwn_fnc_ptr(i);
                 rate_cnt[i] = PARAM_LIST[i].rate; // reload countdown value
             }
-        // Bus Voltage
-        // Thermocouple 1
-        // Thermocouple 2
-        // RPM
-        // Engine Hours / Hobbs Meter
-        // Engine On Time since started
-        // Maintenance Timer
-        // Fuel Level
-        // Water Temperature
-
-        // Relay Output
-        // Open Drain 1 Output
-        // Open Drain 2 Output
-
-        // Fuel Flow Instantaneous
-        // Fuel Flow Average since started
-        // Time to Empty Tank (fuel endurance)
-        // Range to Empty Tank (fuel range)
-        // Fuel Burned
     }
 }

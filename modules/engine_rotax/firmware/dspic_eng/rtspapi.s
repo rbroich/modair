@@ -157,7 +157,7 @@ _FlashPageWrite:
         mov     #0, w1
         
         mov        #0,w6            
-        mov        #512,w5         ; was 256; i.e. PAGE/4
+        mov        #256,w5         ; was 512; i.e. PAGE/4;
 row_loop:
         mov     #2,w3           ; 2 locations of 4 words or programmed
         mov     #0, w1            ;clear w1 - address is relative to the row start address
