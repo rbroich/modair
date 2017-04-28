@@ -1,5 +1,16 @@
 #include "common.h"
 
+
+u8 linear_interpolate(u16 x, u16 x0, u16 x1, u8 y0, u8 y1)
+{
+    s16 sub_xx0 = x-x0;
+    s16 subx1x0 = x1-x0;
+    s16 suby1y0 = y1-y0;
+    s16 mul0 = suby1y0*sub_xx0;
+    s16 div0 = mul0/subx1x0;
+    return (y0 + div0);
+}
+
 s16 mpow(s16 x, s16 exp)
 {
     s16 i;
@@ -41,9 +52,9 @@ char *mprint_int(char *s, s16 n, s16 base, s16 digits)
         s[i-j] = s[j];
         s[j] = c;
     }
+    // DO NOT TERMINATE!!!
     i++;
-    s[i] = '\0';
-    return &s[i]; // point to terminating char
+    return &s[i]; // point to char after last
 }
 
 char *mprint_float(char *str, float val, s16 pre_digits, s16 post_digits)

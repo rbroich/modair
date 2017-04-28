@@ -1,31 +1,42 @@
 #include "ecan_mod.h"
 #include "string.h"
+#include "params.h"
+#include "led.h"
 #include "modair_bus.h"
 
 __attribute__((aligned(NR_ECAN_BUF*16))) u16 ecan_buf[NR_ECAN_BUF][8];
 
-extern void ecan_rx(u16 pid, u16 *data, u8 msg_type, u8 flags, u8 len);
+extern const s_param_const PARAM_CONST[PARAM_CNT];
 
-void ecan_irq(void)
+void ecan_process(void)
 {
-    u8 buf_sel = C1VECbits.ICODE;
-    if (!(ecan_buf[buf_sel][0] & 0x0001)) // Extended Identifier (29-bit ID)
-        return;
-
-    // CID = CAN-ID = 0b000s.ssss.ssss.ssee.eeee.eeee.eeee.eeee
-    // where s [bit28:18] = SID (11 bit)
-    //       e [bit17:00] = EID (18 bit)
-    u8 msg_type = (ecan_buf[buf_sel][0] & 0x0FF0) >> 4;
-    u8 len = ecan_buf[buf_sel][2]&0x000F; // Data Length Code
-    u16 pid = ecan_buf[buf_sel][2] >> 10;
-    pid |= ecan_buf[buf_sel][1] << 6;
-    u8 flags = (ecan_buf[buf_sel][1] & 0x0C00) >> 10;
-    if (ecan_buf[buf_sel][2] & 0x0200) // remote frame request
-        flags |= ECAN_FLAGS_RTR;
-    ecan_rx(pid, &ecan_buf[buf_sel][3], msg_type, flags, len);
-    C1RXFUL1 = 0xFFFF ^ (1<<buf_sel); // Clear Rx Buffer Full Flag
-    C1INTFbits.TBIF = 0; // Clear TX Buffer Interrupt Flag
-    C1INTFbits.RBIF = 0; // Clear RX Buffer Interrupt Flag
+    static u8 next_rx_buff = 0;
+    u8 i, j, cb;
+    u8 buf_sel;
+    cb = next_rx_buff; // ensure buffers are processed in their received order
+    for (j=0;j<8;j++) {
+        buf_sel = 8 + ((cb+j)&0x7); // first 8 are Tx, last 8 are Rx
+        if (C1RXFUL1 & (1<<buf_sel)) { // receive buffer full flag
+            led_toggle();
+            next_rx_buff = cb+j+1;
+            if (ecan_buf[buf_sel][0] & 0x0001) { // Extended Identifier (29-bit ID)
+                // CID = CAN-ID = 0b000s.ssss.ssss.ssee.eeee.eeee.eeee.eeee
+                // where s [bit28:18] = SID (11 bit)
+                //       e [bit17:00] = EID (18 bit)
+                u8 msg_type = (ecan_buf[buf_sel][0] & 0x0FF0) >> 4;
+                u8 len = ecan_buf[buf_sel][2]&0x000F; // Data Length Code
+                u16 pid = ecan_buf[buf_sel][2] >> 10;
+                pid |= ecan_buf[buf_sel][1] << 6;
+                u8 flags = (ecan_buf[buf_sel][1] & 0x0C00) >> 10;
+                if (ecan_buf[buf_sel][2] & 0x0200) // remote frame request
+                    flags |= ECAN_FLAGS_RTR;
+                for (i=0;i<PARAM_CNT;i++)
+                    if (PARAM_CONST[i].canrx_fnc_ptr)
+                        PARAM_CONST[i].canrx_fnc_ptr(i,pid,&ecan_buf[buf_sel][3],msg_type,flags,len);
+            }
+            C1RXFUL1 = 0xFFFF ^ (1<<buf_sel); // Clear Rx Buffer Full Flag
+        } else break;
+    }
 }
 
 void ecan_tx_console(u16 pid, char *str)
@@ -193,6 +204,4 @@ void ecan_init(void)
 
     C1CTRL1bits.REQOP = 0; // enter normal mode
     while(C1CTRL1bits.OPMODE != 0); // wait for normal mode
-
-    C1INTEbits.RBIE = ENABLE; // Receive Buffer Interrupt Enable
 }

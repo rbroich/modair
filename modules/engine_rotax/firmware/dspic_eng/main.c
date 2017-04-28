@@ -18,31 +18,54 @@
 //==============================================================================
 //--------------------GLOBAL VARIABLES------------------------------------------
 //==============================================================================
-extern u16 THIS_MODULE_ID;
+//s_param_settings PARAM_LIST[PARAM_CNT];
+u16 rate_cnt[PARAM_CNT];
 
-#define PARAM_CNT 12
-s_param_settings PARAM_LIST[PARAM_CNT] = {
-    {.pid=0x0010, .name="BUS VOLT", .rate=0x20, .console_fnc_ptr=0},
-    {.pid=0x0011, .name="EGT 1   ", .rate=0x20, .console_fnc_ptr=0},
-    {.pid=0x0012, .name="EGT 2   ", .rate=0x20, .console_fnc_ptr=0},
-    {.pid=0x0013, .name="RPM     ", .rate=0x20, .console_fnc_ptr=0},
-    {.pid=0x0014, .name="ENG HRS ", .rate=0x20, .console_fnc_ptr=0},
-    {.pid=0x0015, .name="ENG ON  ", .rate=0x20, .console_fnc_ptr=0},
-    {.pid=0x0016, .name="MAINTAIN", .rate=0x20, .console_fnc_ptr=0},
-    {.pid=0x0017, .name="FUEL LVL", .rate=0x20, .console_fnc_ptr=0},
-    {.pid=0x0018, .name="H2O TEMP", .rate=0x20, .console_fnc_ptr=0},
-    {.pid=0x0019, .name="RELAY   ", .rate=0x20, .console_fnc_ptr=0},
-    {.pid=0x001A, .name="OD1 OUT ", .rate=0x20, .console_fnc_ptr=0},
-    {.pid=0x001B, .name="OD2 OUT ", .rate=0x20, .console_fnc_ptr=0}
+//==============================================================================
+//--------------------GLOBAL CONSTANTS------------------------------------------
+//==============================================================================
+// TODO: make this constant is stored in flash (such that it is rewritable)
+__attribute__((aligned(FLASH_PAGE_SIZE))) const s_param_settings PARAM_LIST[PARAM_CNT] = {
+    {.pid=0xFF02, .name="Rotax582", .rate=0}, // MODULE
+    {.pid=0x0010, .name="BUS VOLT", .rate=0x20},
+    {.pid=0x0011, .name="EGT 1   ", .rate=0x20},
+    {.pid=0x0012, .name="EGT 2   ", .rate=0x20},
+    {.pid=0x0013, .name="RPM     ", .rate=0x20},
+    {.pid=0x0014, .name="ENG HRS ", .rate=0x20},
+    {.pid=0x0015, .name="ENG ON  ", .rate=0x20},
+    {.pid=0x0016, .name="MAINTAIN", .rate=0x20},
+    {.pid=0x0017, .name="FUEL LVL", .rate=0x20},
+    {.pid=0x0018, .name="H2O TEMP", .rate=0x20},
+    {.pid=0x0019, .name="RELAY   ", .rate=0x20},
+    {.pid=0x001A, .name="OD1 OUT ", .rate=0x20},
+    {.pid=0x001B, .name="OD2 OUT ", .rate=0x20}
 };
 
+const s_param_const PARAM_CONST[PARAM_CNT] = {
+    {.canrx_fnc_ptr=&module_ecanrx, .cntdwn_fnc_ptr=0}, // MODULE
+    {.canrx_fnc_ptr=0, .cntdwn_fnc_ptr=0},
+    {.canrx_fnc_ptr=0, .cntdwn_fnc_ptr=0},
+    {.canrx_fnc_ptr=0, .cntdwn_fnc_ptr=0},
+    {.canrx_fnc_ptr=0, .cntdwn_fnc_ptr=0},
+    {.canrx_fnc_ptr=0, .cntdwn_fnc_ptr=0},
+    {.canrx_fnc_ptr=0, .cntdwn_fnc_ptr=0},
+    {.canrx_fnc_ptr=0, .cntdwn_fnc_ptr=0},
+    {.canrx_fnc_ptr=0, .cntdwn_fnc_ptr=0},
+    {.canrx_fnc_ptr=0, .cntdwn_fnc_ptr=0},
+    {.canrx_fnc_ptr=0, .cntdwn_fnc_ptr=0},
+    {.canrx_fnc_ptr=0, .cntdwn_fnc_ptr=0},
+    {.canrx_fnc_ptr=0, .cntdwn_fnc_ptr=0}
+};
 
 //==============================================================================
 //--------------------INTERRUPTS------------------------------------------------
 //==============================================================================
 void __attribute__((interrupt, auto_psv)) _T1Interrupt(void)
 {
-
+    u8 i;
+    for (i=1;i<PARAM_CNT;i++)
+        if (rate_cnt[i])
+            rate_cnt[i]--;
     _T1IF = 0;  // clear the interrupt
 }
 
@@ -53,31 +76,10 @@ void __attribute__((interrupt, auto_psv)) _CNInterrupt(void)
     _CNIF = 0;  // clear the interrupt
 }
 
-void __attribute__((interrupt, auto_psv)) _C1Interrupt(void)
-{
-    ecan_irq();
-    _C1IF = 0;  // clear the interrupt
-}
-
 void __attribute__((interrupt, auto_psv)) _AD1Interrupt(void)
 {
     analog_irq();
     _AD1IF = 0;  // clear the interrupt
-}
-
-void ecan_rx(u16 pid, u16 *data, u8 msg_type, u8 flags, u8 len)
-{
-    module_console_canrx(pid,data,msg_type,flags,len);
-
-
-    // Handle incoming CAN messages; don't send messages from this IRQ
-    u8 i;
-    u8* dptr = (u8*)data;
-
-    if ((msg_type==MT_REMOTE_CMD)&&(dptr[2]==MC_GET_NAME)&&(flags==0)&&(len==3))
-        if ((data[0]==DPI_ALL_PARAMETERS)||(data[0]==THIS_MODULE_ID))
-            for (i=0;i<PARAM_CNT;i++) // send all parameter ID names of this module
-                ecan_tx_str(PARAM_LIST[i].pid, PARAM_LIST[i].name, MT_BROADCAST_NAME, 8);
 }
 
 //==============================================================================
@@ -99,21 +101,17 @@ void irq_init(void)
     _T1IP = 2; // second lowest priority
     _T1IE = ENABLE; // timer1 interrupt enable
 
-    _C1IF = 0; // CAN1 Event Interrupt Flag
-    _C1IP = 3; // third lowest priority
-    _C1IE = ENABLE; // CAN1 Event Interrupt Enable
-
     _CNIF = 0; // ChangeNotification Flag
-    _CNIP = 4; // fourth lowest priority level
+    _CNIP = 3; // third lowest priority level
     _CNIE = ENABLE; // change notification interrupt enable
 }
-
 
 //==============================================================================
 //--------------------MAIN LOOP-------------------------------------------------
 //==============================================================================
 int main(void)
 {
+    u8 i;
     OSCTUN = 0; // 7.37 MHz
     CLKDIV = 0; // N1=2, N2=2
     PLLFBD = 63; // M=65
@@ -121,6 +119,8 @@ int main(void)
     // Fcy  = Fosc/2 = 59.88125 MIPS
     while (OSCCONbits.LOCK!=1){}; // Wait for PLL to lock
 
+    // Call Parameter Init functions
+    module_init();
     led_init();
     ecan_init();
     thermocouple_init();
@@ -131,17 +131,18 @@ int main(void)
     tmr1_init(50); // 50 Hz == 20 ms ticks
     irq_init();
 
-    ecan_tx(0x1234, 'H' | 'e'<<8, 'l' | 'l'<<8, 'o' | ' '<<8, '1' | '2'<<8, MT_BROADCAST_NAME, 0, 8);
-
     while(1)
     {
-        led_toggle();
+        // handle CAN receive messages here
+        ecan_process();
 
-        //delay_ms(220);
-
-        module_console_process();
-
-        //ecan_tx(0x1234, rpm_read(), thermocouple_read(0), analog_read_fuellevel(), analog_read_inputvoltage(), MT_BROADCAST_VALUE, 0, 8);
+        // handle TMR timeout function calls here
+        for (i=1;i<PARAM_CNT;i++)
+            if ((rate_cnt[i]==0)&&(PARAM_LIST[i].rate)) {
+                if (PARAM_CONST[i].cntdwn_fnc_ptr) // if timeout fnc exists
+                    PARAM_CONST[i].cntdwn_fnc_ptr(i);
+                rate_cnt[i] = PARAM_LIST[i].rate; // reload countdown value
+            }
         // Bus Voltage
         // Thermocouple 1
         // Thermocouple 2

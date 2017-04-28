@@ -15,12 +15,11 @@
 #define ECAN_FLAGS_nEOF         0x02
 #define ECAN_FLAGS_RTR          0x04
 
-void ecan_irq(void);
+void ecan_process(void);
 void ecan_tx_console(u16 pid, char *str);
 void ecan_tx_float(u16 pid, u16 msg_type, float val);
 void ecan_tx_str(u16 pid, char* str, u16 msg_type, u8 len);
 void ecan_tx(u16 pid, u16 d0, u16 d2, u16 d4, u16 d6, u16 msg_type, u8 len, u8 flags);
-// extern void ecan_rx(u16 pid, u16 *data, u8 msg_type, u8 flags, u8 len);
 void ecan_init(void);
 
 #endif
