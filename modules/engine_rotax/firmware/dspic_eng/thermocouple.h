@@ -12,10 +12,9 @@
 #define TC_nCS1t                  TRISBbits.TRISB5
 #define TC_nCS1                   LATBbits.LATB5
 
-void thermocouple_ecanrx(u8 idx, u16 pid, u16 *data, u8 msg_type, u8 flags, u8 len);
 void thermocouple_cntdwn(u8 idx);
 
-void thermocouple_fnc_homescreen(u8 idx, u8 key_input);
+void* thermocouple_fnc_homescreen(u8 idx, u8 key_input);
 
 void thermocouple_init(void);
 u16 thermocouple_read(u8 tc_index);

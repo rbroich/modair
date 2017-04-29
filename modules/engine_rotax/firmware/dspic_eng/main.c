@@ -21,10 +21,18 @@
 #include "watertemp.h"
 
 //==============================================================================
+//--------------------FUNCTION PROTOTYPES---------------------------------------
+//==============================================================================
+void module_ecanrx(u8 idx, u16 pid, u16 *data, u8 msg_type, u8 flags, u8 len);
+
+//==============================================================================
 //--------------------GLOBAL VARIABLES------------------------------------------
 //==============================================================================
 //s_param_settings PARAM_LIST[PARAM_CNT];
 u16 rate_cnt[PARAM_CNT];
+
+// use function pointers to navigate through the module menu;
+void* (*current_menu_fnc)(u8,u8) = 0;
 
 //==============================================================================
 //--------------------GLOBAL CONSTANTS------------------------------------------
@@ -52,24 +60,24 @@ __attribute__((aligned(FLASH_PAGE_SIZE))) const s_param_settings PARAM_LIST[PARA
 };
 
 const s_param_const PARAM_CONST[PARAM_CNT] = {
-    {.canrx_fnc_ptr=&module_ecanrx, .cntdwn_fnc_ptr=0}, // MODULE
-    {.canrx_fnc_ptr=&busvoltage_ecanrx, .cntdwn_fnc_ptr=&busvoltage_cntdwn}, // Bus Voltage
-    {.canrx_fnc_ptr=&thermocouple_ecanrx, .cntdwn_fnc_ptr=&thermocouple_cntdwn}, // Thermocouple 1
-    {.canrx_fnc_ptr=&thermocouple_ecanrx, .cntdwn_fnc_ptr=&thermocouple_cntdwn}, // Thermocouple 2
-    {.canrx_fnc_ptr=&rpm_ecanrx, .cntdwn_fnc_ptr=&rpm_cntdwn}, // RPM
-    {.canrx_fnc_ptr=0, .cntdwn_fnc_ptr=0}, // Engine Hours / Hobbs Meter
-    {.canrx_fnc_ptr=0, .cntdwn_fnc_ptr=0}, // Engine On Time since started
-    {.canrx_fnc_ptr=0, .cntdwn_fnc_ptr=0}, // Maintenance Timer
-    {.canrx_fnc_ptr=&fuellevel_ecanrx, .cntdwn_fnc_ptr=&fuellevel_cntdwn}, // Fuel Level
-    {.canrx_fnc_ptr=&watertemp_ecanrx, .cntdwn_fnc_ptr=&watertemp_cntdwn}, // Water Temperature
-    {.canrx_fnc_ptr=0, .cntdwn_fnc_ptr=0}, // Relay Output
-    {.canrx_fnc_ptr=0, .cntdwn_fnc_ptr=0}, // Open Drain 1 Output
-    {.canrx_fnc_ptr=0, .cntdwn_fnc_ptr=0}, // Open Drain 2 Output
-    {.canrx_fnc_ptr=0, .cntdwn_fnc_ptr=0}, // Fuel Flow Instantaneous
-    {.canrx_fnc_ptr=0, .cntdwn_fnc_ptr=0}, // Fuel Flow Average since started
-    {.canrx_fnc_ptr=0, .cntdwn_fnc_ptr=0}, // Time to Empty Tank (fuel endurance)
-    {.canrx_fnc_ptr=0, .cntdwn_fnc_ptr=0}, // Range to Empty Tank (fuel range)
-    {.canrx_fnc_ptr=0, .cntdwn_fnc_ptr=0}  // Fuel Burned
+    {.canrx_fnc_ptr=&module_ecanrx, .cntdwn_fnc_ptr=0,                    .menu_fnc_ptr=&menu_fnc_homescreen          }, // MODULE
+    {.canrx_fnc_ptr=0,              .cntdwn_fnc_ptr=&busvoltage_cntdwn,   .menu_fnc_ptr=&busvoltage_fnc_homescreen    }, // Bus Voltage
+    {.canrx_fnc_ptr=0,              .cntdwn_fnc_ptr=&thermocouple_cntdwn, .menu_fnc_ptr=&thermocouple_fnc_homescreen  }, // Thermocouple 1
+    {.canrx_fnc_ptr=0,              .cntdwn_fnc_ptr=&thermocouple_cntdwn, .menu_fnc_ptr=&thermocouple_fnc_homescreen  }, // Thermocouple 2
+    {.canrx_fnc_ptr=0,              .cntdwn_fnc_ptr=&rpm_cntdwn,          .menu_fnc_ptr=0                             }, // RPM
+    {.canrx_fnc_ptr=0,              .cntdwn_fnc_ptr=&enginehours_cntdwn,  .menu_fnc_ptr=&enginehours_fnc_homescreen   }, // Engine Hours / Hobbs Meter
+    {.canrx_fnc_ptr=0,              .cntdwn_fnc_ptr=0,                    .menu_fnc_ptr=0                             }, // Engine On Time since started
+    {.canrx_fnc_ptr=0,              .cntdwn_fnc_ptr=0,                    .menu_fnc_ptr=0                             }, // Maintenance Timer
+    {.canrx_fnc_ptr=0,              .cntdwn_fnc_ptr=&fuellevel_cntdwn,    .menu_fnc_ptr=&fuellevel_fnc_homescreen     }, // Fuel Level
+    {.canrx_fnc_ptr=0,              .cntdwn_fnc_ptr=&watertemp_cntdwn,    .menu_fnc_ptr=0                             }, // Water Temperature
+    {.canrx_fnc_ptr=0,              .cntdwn_fnc_ptr=0,                    .menu_fnc_ptr=0                             }, // Relay Output
+    {.canrx_fnc_ptr=0,              .cntdwn_fnc_ptr=0,                    .menu_fnc_ptr=0                             }, // Open Drain 1 Output
+    {.canrx_fnc_ptr=0,              .cntdwn_fnc_ptr=0,                    .menu_fnc_ptr=0                             }, // Open Drain 2 Output
+    {.canrx_fnc_ptr=0,              .cntdwn_fnc_ptr=0,                    .menu_fnc_ptr=0                             }, // Fuel Flow Instantaneous
+    {.canrx_fnc_ptr=0,              .cntdwn_fnc_ptr=0,                    .menu_fnc_ptr=0                             }, // Fuel Flow Average since started
+    {.canrx_fnc_ptr=0,              .cntdwn_fnc_ptr=0,                    .menu_fnc_ptr=0                             }, // Time to Empty Tank (fuel endurance)
+    {.canrx_fnc_ptr=0,              .cntdwn_fnc_ptr=0,                    .menu_fnc_ptr=0                             }, // Range to Empty Tank (fuel range)
+    {.canrx_fnc_ptr=0,              .cntdwn_fnc_ptr=0,                    .menu_fnc_ptr=0                             }  // Fuel Burned
 };
 
 const s_fuelcal fuellevel_rom = { // converts ADC value to fuel level in 0.01 liter
@@ -83,8 +91,9 @@ const s_watertemp watertemp_rom = { // converts ADC value to water temperature i
 };
 
 const u16 rmp_mul = 20; // CNTs per 0.5s => 2.0 (cnts/sec) * 60.0 (cnts/min) / 6.0 (rotax582 setting?)
-const float engine_hobbs = 1202.4;
-const float maintainance_cntdwn = 50.0;
+const float engine_hobbs = 1202.4; // hours
+const u8 maintainance_date[3] = {28,04,18}; // dd,mm,20yy
+const float maintanance_hobbs = 1250.0;
 
 //==============================================================================
 //--------------------INTERRUPTS------------------------------------------------
@@ -138,6 +147,49 @@ void irq_init(void)
 }
 
 //==============================================================================
+//--------------------MODULE CAN PROCESS----------------------------------------
+//==============================================================================
+void module_ecanrx(u8 idx, u16 pid, u16 *data, u8 msg_type, u8 flags, u8 len)
+{
+    u8 i;
+    u8* dptr = (u8*)data;
+    if (idx) return; // expect idx==0 for MODULE
+
+    if ((msg_type==MT_REMOTE_CMD)&&(dptr[2]==MC_GET_NAME)&&(flags==0)&&(len==3)) {
+        if (data[0]==DPI_ALL_MODULES) // send this module name
+            ecan_tx_str(PARAM_LIST[0].pid, (char*)PARAM_LIST[0].name, MT_BROADCAST_NAME, 8);
+
+        if ((data[0]==DPI_ALL_PARAMETERS)||(data[0]==PARAM_LIST[0].pid)) // all parameters, or all parameters of this module
+            for (i=1;i<PARAM_CNT;i++) // send all parameter ID names of this module
+                ecan_tx_str(PARAM_LIST[i].pid, (char*)PARAM_LIST[i].name, MT_BROADCAST_NAME, 8);
+
+        for (i=1;i<PARAM_CNT;i++)
+            if (data[0]==PARAM_LIST[i].pid)
+                ecan_tx_str(PARAM_LIST[i].pid, (char*)PARAM_LIST[i].name, MT_BROADCAST_NAME, 8);
+    }
+    if ((msg_type==MT_REMOTE_CMD)&&(dptr[2]==MC_GET_VALUE)&&(flags==0)&&(len==3)) {
+        for (i=1;i<PARAM_CNT;i++)
+            if ((data[0]==PARAM_LIST[i].pid)&&(PARAM_CONST[i].cntdwn_fnc_ptr))
+                PARAM_CONST[i].cntdwn_fnc_ptr(i);
+    }
+
+    if ((msg_type==MT_REMOTE_CMD)&&(dptr[2]==MC_TERMINAL_KEY)&&(flags==0)&&(len==4))  {
+        for (i=0;i<PARAM_CNT;i++)
+            if (data[0]==PARAM_LIST[i].pid) {
+                static u8 current_menu_idx = 255;
+                if ((current_menu_fnc==NULL)||(current_menu_idx!=i)) // if not in sub-menu of previous
+                    current_menu_fnc = PARAM_CONST[i].menu_fnc_ptr;
+                if (current_menu_fnc) // call console function
+                    current_menu_fnc = (*current_menu_fnc)(i,dptr[3]);
+                if (current_menu_fnc==NULL) // send EXIT if invalid or response==0
+                    ecan_tx_console(PARAM_LIST[i].pid, 0);
+                current_menu_idx = i;
+                break;
+            }
+    }
+}
+
+//==============================================================================
 //--------------------MAIN LOOP-------------------------------------------------
 //==============================================================================
 int main(void)
@@ -151,7 +203,6 @@ int main(void)
     while (OSCCONbits.LOCK!=1){}; // Wait for PLL to lock
 
     // Call Parameter Init functions
-    module_init();
     led_init();
     opendrain_init();
     ecan_init();
