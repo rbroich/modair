@@ -60,24 +60,24 @@ __attribute__((aligned(FLASH_PAGE_SIZE))) const s_param_settings PARAM_LIST[PARA
 };
 
 const s_param_const PARAM_CONST[PARAM_CNT] = {
-    {.canrx_fnc_ptr=&module_ecanrx, .cntdwn_fnc_ptr=0,                    .menu_fnc_ptr=&menu_fnc_homescreen          }, // MODULE
-    {.canrx_fnc_ptr=0,              .cntdwn_fnc_ptr=&busvoltage_cntdwn,   .menu_fnc_ptr=&busvoltage_fnc_homescreen    }, // Bus Voltage
-    {.canrx_fnc_ptr=0,              .cntdwn_fnc_ptr=&thermocouple_cntdwn, .menu_fnc_ptr=&thermocouple_fnc_homescreen  }, // Thermocouple 1
-    {.canrx_fnc_ptr=0,              .cntdwn_fnc_ptr=&thermocouple_cntdwn, .menu_fnc_ptr=&thermocouple_fnc_homescreen  }, // Thermocouple 2
-    {.canrx_fnc_ptr=0,              .cntdwn_fnc_ptr=&rpm_cntdwn,          .menu_fnc_ptr=0                             }, // RPM
-    {.canrx_fnc_ptr=0,              .cntdwn_fnc_ptr=&enginehours_cntdwn,  .menu_fnc_ptr=&enginehours_fnc_homescreen   }, // Engine Hours / Hobbs Meter
-    {.canrx_fnc_ptr=0,              .cntdwn_fnc_ptr=0,                    .menu_fnc_ptr=0                             }, // Engine On Time since started
-    {.canrx_fnc_ptr=0,              .cntdwn_fnc_ptr=0,                    .menu_fnc_ptr=0                             }, // Maintenance Timer
-    {.canrx_fnc_ptr=0,              .cntdwn_fnc_ptr=&fuellevel_cntdwn,    .menu_fnc_ptr=&fuellevel_fnc_homescreen     }, // Fuel Level
-    {.canrx_fnc_ptr=0,              .cntdwn_fnc_ptr=&watertemp_cntdwn,    .menu_fnc_ptr=0                             }, // Water Temperature
-    {.canrx_fnc_ptr=0,              .cntdwn_fnc_ptr=0,                    .menu_fnc_ptr=0                             }, // Relay Output
-    {.canrx_fnc_ptr=0,              .cntdwn_fnc_ptr=0,                    .menu_fnc_ptr=0                             }, // Open Drain 1 Output
-    {.canrx_fnc_ptr=0,              .cntdwn_fnc_ptr=0,                    .menu_fnc_ptr=0                             }, // Open Drain 2 Output
-    {.canrx_fnc_ptr=0,              .cntdwn_fnc_ptr=0,                    .menu_fnc_ptr=0                             }, // Fuel Flow Instantaneous
-    {.canrx_fnc_ptr=0,              .cntdwn_fnc_ptr=0,                    .menu_fnc_ptr=0                             }, // Fuel Flow Average since started
-    {.canrx_fnc_ptr=0,              .cntdwn_fnc_ptr=0,                    .menu_fnc_ptr=0                             }, // Time to Empty Tank (fuel endurance)
-    {.canrx_fnc_ptr=0,              .cntdwn_fnc_ptr=0,                    .menu_fnc_ptr=0                             }, // Range to Empty Tank (fuel range)
-    {.canrx_fnc_ptr=0,              .cntdwn_fnc_ptr=0,                    .menu_fnc_ptr=0                             }  // Fuel Burned
+    {.canrx_fnc_ptr=&module_ecanrx, .sendval_fnc_ptr=0,                    .menu_fnc_ptr=&menu_fnc_homescreen          }, // MODULE
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&busvoltage_cntdwn,   .menu_fnc_ptr=&busvoltage_fnc_homescreen    }, // Bus Voltage
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&thermocouple_cntdwn, .menu_fnc_ptr=&thermocouple_fnc_homescreen  }, // Thermocouple 1
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&thermocouple_cntdwn, .menu_fnc_ptr=&thermocouple_fnc_homescreen  }, // Thermocouple 2
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&rpm_cntdwn,          .menu_fnc_ptr=0                             }, // RPM
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&enginehours_cntdwn,  .menu_fnc_ptr=&enginehours_fnc_homescreen   }, // Engine Hours / Hobbs Meter
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=0,                    .menu_fnc_ptr=0                             }, // Engine On Time since started
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=0,                    .menu_fnc_ptr=0                             }, // Maintenance Timer
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&fuellevel_cntdwn,    .menu_fnc_ptr=&fuellevel_fnc_homescreen     }, // Fuel Level
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&watertemp_cntdwn,    .menu_fnc_ptr=0                             }, // Water Temperature
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=0,                    .menu_fnc_ptr=0                             }, // Relay Output
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=0,                    .menu_fnc_ptr=0                             }, // Open Drain 1 Output
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=0,                    .menu_fnc_ptr=0                             }, // Open Drain 2 Output
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=0,                    .menu_fnc_ptr=0                             }, // Fuel Flow Instantaneous
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=0,                    .menu_fnc_ptr=0                             }, // Fuel Flow Average since started
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=0,                    .menu_fnc_ptr=0                             }, // Time to Empty Tank (fuel endurance)
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=0,                    .menu_fnc_ptr=0                             }, // Range to Empty Tank (fuel range)
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=0,                    .menu_fnc_ptr=0                             }  // Fuel Burned
 };
 
 const s_fuelcal fuellevel_rom = { // converts ADC value to fuel level in 0.01 liter
@@ -94,6 +94,7 @@ const u16 rmp_mul = 20; // CNTs per 0.5s => 2.0 (cnts/sec) * 60.0 (cnts/min) / 6
 const float engine_hobbs = 1202.4; // hours
 const u8 maintainance_date[3] = {28,04,18}; // dd,mm,20yy
 const float maintanance_hobbs = 1250.0;
+const u16 maintainance_date_pid = 0; // linked PID that provides today's date
 
 //==============================================================================
 //--------------------INTERRUPTS------------------------------------------------
@@ -155,6 +156,7 @@ void module_ecanrx(u8 idx, u16 pid, u16 *data, u8 msg_type, u8 flags, u8 len)
     u8* dptr = (u8*)data;
     if (idx) return; // expect idx==0 for MODULE
 
+    // Get Name
     if ((msg_type==MT_REMOTE_CMD)&&(dptr[2]==MC_GET_NAME)&&(flags==0)&&(len==3)) {
         if (data[0]==DPI_ALL_MODULES) // send this module name
             ecan_tx_str(PARAM_LIST[0].pid, (char*)PARAM_LIST[0].name, MT_BROADCAST_NAME, 8);
@@ -167,21 +169,30 @@ void module_ecanrx(u8 idx, u16 pid, u16 *data, u8 msg_type, u8 flags, u8 len)
             if (data[0]==PARAM_LIST[i].pid)
                 ecan_tx_str(PARAM_LIST[i].pid, (char*)PARAM_LIST[i].name, MT_BROADCAST_NAME, 8);
     }
-    if ((msg_type==MT_REMOTE_CMD)&&(dptr[2]==MC_GET_VALUE)&&(flags==0)&&(len==3)) {
-        for (i=1;i<PARAM_CNT;i++)
-            if ((data[0]==PARAM_LIST[i].pid)&&(PARAM_CONST[i].cntdwn_fnc_ptr))
-                PARAM_CONST[i].cntdwn_fnc_ptr(i);
+    if ((msg_type==MT_BROADCAST_NAME)&&(flags==ECAN_FLAGS_RTR)&&(len==0)) {
+        for (i=0;i<PARAM_CNT;i++)
+            if (data[0]==PARAM_LIST[i].pid)
+                ecan_tx_str(PARAM_LIST[i].pid, (char*)PARAM_LIST[i].name, MT_BROADCAST_NAME, 8);
     }
 
-    if ((msg_type==MT_REMOTE_CMD)&&(dptr[2]==MC_TERMINAL_KEY)&&(flags==0)&&(len==4))  {
+    // Get Value
+    if ( ((msg_type==MT_REMOTE_CMD)&&(dptr[2]==MC_GET_VALUE)&&(flags==0)&&(len==3)) ||
+       ((msg_type==MT_BROADCAST_VALUE)&&(flags==ECAN_FLAGS_RTR)&&(len==0)) ) {
+        for (i=1;i<PARAM_CNT;i++)
+            if ((data[0]==PARAM_LIST[i].pid)&&(PARAM_CONST[i].sendval_fnc_ptr))
+                PARAM_CONST[i].sendval_fnc_ptr(i);
+    }
+
+    // Remote Menu / Terminal Console
+    if ((msg_type==MT_REMOTE_CMD)&&(dptr[2]==MC_TERMINAL_KEY)&&(flags==0)&&(len==4)) {
         for (i=0;i<PARAM_CNT;i++)
             if (data[0]==PARAM_LIST[i].pid) {
                 static u8 current_menu_idx = 255;
-                if ((current_menu_fnc==NULL)||(current_menu_idx!=i)) // if not in sub-menu of previous
+                if ((current_menu_fnc==0)||(current_menu_idx!=i)) // if not in sub-menu of previous
                     current_menu_fnc = PARAM_CONST[i].menu_fnc_ptr;
                 if (current_menu_fnc) // call console function
                     current_menu_fnc = (*current_menu_fnc)(i,dptr[3]);
-                if (current_menu_fnc==NULL) // send EXIT if invalid or response==0
+                if (current_menu_fnc==0) // send EXIT if invalid or response==0
                     ecan_tx_console(PARAM_LIST[i].pid, 0);
                 current_menu_idx = i;
                 break;
@@ -223,8 +234,8 @@ int main(void)
         // handle TMR timeout function calls here
         for (i=1;i<PARAM_CNT;i++)
             if ((rate_cnt[i]==0)&&(PARAM_LIST[i].rate)) {
-                if (PARAM_CONST[i].cntdwn_fnc_ptr) // if timeout fnc exists
-                    PARAM_CONST[i].cntdwn_fnc_ptr(i);
+                if (PARAM_CONST[i].sendval_fnc_ptr) // if timeout fnc exists
+                    PARAM_CONST[i].sendval_fnc_ptr(i);
                 rate_cnt[i] = PARAM_LIST[i].rate; // reload countdown value
             }
     }

@@ -33,7 +33,7 @@ void* menu_fnc_homescreen(u8 zero, u8 key_input)
     strcopy(&rtxt[1+0*16], "Exit");
     strcopy(&rtxt[1+1*16], "Version");
     strcopy(&rtxt[1+2*16], "Change ID");
-    strcopy(&rtxt[1+3*16], "Change Name");
+    strcopy(&rtxt[1+3*16], "Change Name"); // Change: ID/Name/Rate submenu: discard changes, save changes, item0...N
     rtxt[(idx&0x03)*16] = '>';
     ecan_tx_console(PARAM_LIST[0].pid, rtxt);
     return &menu_fnc_homescreen;

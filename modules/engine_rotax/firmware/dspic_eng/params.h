@@ -14,7 +14,7 @@ typedef struct {
 
 typedef struct {
     void (*canrx_fnc_ptr)(u8,u16,u16*,u8,u8,u8);
-    void (*cntdwn_fnc_ptr)(u8);
+    void (*sendval_fnc_ptr)(u8);
     void* (*menu_fnc_ptr)(u8,u8);
 } s_param_const;
 
