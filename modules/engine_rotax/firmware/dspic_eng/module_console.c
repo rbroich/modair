@@ -15,9 +15,9 @@ void* menu_fnc_homescreen(u8 zero, u8 key_input)
 {
     // first process key input
     switch(key_input) {
-        case TK_ROT_INC: idx++; if (idx>3) idx=3; break;
-        case TK_ROT_DEC: idx--; if (idx<0) idx=0; break;
-        case TK_ROT_PUSH:
+        case KP_ROT_INC: idx++; if (idx>3) idx=3; break;
+        case KP_ROT_DEC: idx--; if (idx<0) idx=0; break;
+        case KP_ROT_PUSH:
             switch(idx) {
                 case 0: return 0;
                 case 1: return menu_fnc_version(0,0x00);
@@ -42,7 +42,7 @@ void* menu_fnc_homescreen(u8 zero, u8 key_input)
 void* menu_fnc_version(u8 zero, u8 key_input)
 {
     switch(key_input) {
-        case TK_ROT_PUSH:
+        case KP_ROT_PUSH:
             return menu_fnc_homescreen(0,0x00);
             break;
     }
@@ -58,25 +58,25 @@ void* menu_fnc_version(u8 zero, u8 key_input)
 void* menu_fnc_changeid(u8 zero, u8 key_input)
 {
     switch(key_input) {
-        case TK_ROT_HOLD_DEC: idx++; if (idx>1) idx=1; break;
-        case TK_ROT_HOLD_INC: idx--; if (idx<0) idx=0; break;
-        case TK_ROT_INC:
+        case KP_ROT_HOLD_DEC: idx++; if (idx>1) idx=1; break;
+        case KP_ROT_HOLD_INC: idx--; if (idx<0) idx=0; break;
+        case KP_ROT_INC:
             switch (idx) {
                 case 0: jdx+=1; break;
                 case 1: jdx+=16; break;
             }
             break;
-        case TK_ROT_DEC:
+        case KP_ROT_DEC:
             switch (idx) {
                 case 0: jdx-=1; break;
                 case 1: jdx-=16; break;
             }
             break;
-        case TK_ROT_PUSH:
+        case KP_ROT_PUSH:
             // TODO
             //PARAM_LIST[0].pid = jdx; // apply new ID
             return 0;
-        case TK_ROT_HOLD:
+        case KP_ROT_HOLD:
             idx=0; return menu_fnc_homescreen(0,0x00);
     }
     int i;
@@ -95,16 +95,16 @@ void* menu_fnc_changeid(u8 zero, u8 key_input)
 void* menu_fnc_changename(u8 zero, u8 key_input)
 {
     switch(key_input) {
-        case TK_ROT_HOLD_INC: idx++; if (idx>7) idx=7; break;
-        case TK_ROT_HOLD_DEC: idx--; if (idx<0) idx=0; break;
-        case TK_ROT_INC: tmp_str[idx]++; if (tmp_str[idx]>'z') tmp_str[idx]='z'; break;
-        case TK_ROT_DEC: tmp_str[idx]--; if (tmp_str[idx]<' ') tmp_str[idx]=' '; break;
-        case TK_ROT_PUSH:
+        case KP_ROT_HOLD_INC: idx++; if (idx>7) idx=7; break;
+        case KP_ROT_HOLD_DEC: idx--; if (idx<0) idx=0; break;
+        case KP_ROT_INC: tmp_str[idx]++; if (tmp_str[idx]>'z') tmp_str[idx]='z'; break;
+        case KP_ROT_DEC: tmp_str[idx]--; if (tmp_str[idx]<' ') tmp_str[idx]=' '; break;
+        case KP_ROT_PUSH:
             idx++; if (idx<=7) break; 
             // TODO
             //memcpy(PARAM_LIST[0].name,tmp_str,8); // apply new name
             // intentionally no break
-        case TK_ROT_HOLD:
+        case KP_ROT_HOLD:
             idx=0; return menu_fnc_homescreen(0,0x00);
     }
     int i;

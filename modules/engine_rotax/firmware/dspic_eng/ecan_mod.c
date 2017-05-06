@@ -23,11 +23,11 @@ void ecan_process(void)
                 // CID = CAN-ID = 0b000s.ssss.ssss.ssee.eeee.eeee.eeee.eeee
                 // where s [bit28:18] = SID (11 bit)
                 //       e [bit17:00] = EID (18 bit)
-                u8 msg_type = (ecan_buf[buf_sel][0] & 0x0FF0) >> 4;
+                u8 msg_type = (ecan_buf[buf_sel][0] & 0x03FC) >> 2;
                 u8 len = ecan_buf[buf_sel][2]&0x000F; // Data Length Code
-                u16 pid = ecan_buf[buf_sel][2] >> 10;
-                pid |= ecan_buf[buf_sel][1] << 6;
-                u8 flags = (ecan_buf[buf_sel][1] & 0x0C00) >> 10;
+                u16 pid = (ecan_buf[buf_sel][2]&0xF000) >> 12;
+                pid |= ecan_buf[buf_sel][1] << 4;
+                u8 flags = (ecan_buf[buf_sel][2] & 0x0C00) >> 10;
                 if (ecan_buf[buf_sel][2] & 0x0200) // remote frame request
                     flags |= ECAN_FLAGS_RTR;
                 for (i=0;i<PARAM_CNT;i++)
@@ -49,17 +49,17 @@ void ecan_tx_console(u16 pid, char *str)
         // Ensure packets are sent in order...
 
         // START packet: TX7 has highest natural priority
-        ecan_buf[7][0] = (MT_TERMINAL_TXT<<4) | 0b11;
-        ecan_buf[7][1] = ((pid&0xFFC0)>>6) | (MF_PKT_START<<10);
-        ecan_buf[7][2] = ((pid&0x003F)<<10) | 0x08; // len==8
+        ecan_buf[7][0] = (MT_CONSOLE_TEXT<<2) | 0b11;
+        ecan_buf[7][1] = (pid&0xFFF0)>>4;
+        ecan_buf[7][2] = ((pid&0x000F)<<12) | (FT_PKT_START<<10) | 8; // 8 data bytes
         memcpy((char*)&ecan_buf[7][3],&str[0],8);
         _TXREQ7=1; // transmit buffer 7
 
         // CONT packets: buffers 6 downto 1
         for (i=1;i<7;i++) {
-            ecan_buf[7-i][0] = (MT_TERMINAL_TXT<<4) | 0b11;
-            ecan_buf[7-i][1] = ((pid&0xFFC0)>>6) | (MF_PKT_CONT<<10);
-            ecan_buf[7-i][2] = ((pid&0x003F)<<10) | 0x08; // len==8
+            ecan_buf[7-i][0] = (MT_CONSOLE_TEXT<<2) | 0b11;
+            ecan_buf[7-i][1] = (pid&0xFFF0)>>4;
+            ecan_buf[7-i][2] = ((pid&0x000F)<<12) | (FT_PKT_CONT<<10) | 8; // 8 data bytes
             memcpy((char*)&ecan_buf[7-i][3],&str[i*8],8);
             switch (i) { // Request Transmission on current buffer
                 case 1: _TXREQ1=1; break;
@@ -72,15 +72,15 @@ void ecan_tx_console(u16 pid, char *str)
         }
 
         // END packet: buffer 0
-        ecan_buf[0][0] = (MT_TERMINAL_TXT<<4) | 0b11;
-        ecan_buf[0][1] = ((pid&0xFFC0)>>6) | (MF_PKT_END<<10);
-        ecan_buf[0][2] = ((pid&0x003F)<<10) | 0x08; // len==8
+        ecan_buf[0][0] = (MT_CONSOLE_TEXT<<2) | 0b11;
+        ecan_buf[0][1] = (pid&0xFFF0)>>4;
+        ecan_buf[0][2] = ((pid&0x000F)<<12) | (FT_PKT_END<<10) | 8; // 8 data bytes
         memcpy((char*)&ecan_buf[0][3],&str[7*8],8);
         _TXREQ0=1; // transmit buffer 0
     } else {
-        ecan_buf[7][0] = (MT_TERMINAL_TXT<<4) | 0b11;
-        ecan_buf[7][1] = ((pid&0xFFC0)>>6) | (MF_PKT_SINGLE<<10);
-        ecan_buf[7][2] = ((pid&0x003F)<<10) | 1; // 1 data byte
+        ecan_buf[7][0] = (MT_CONSOLE_TEXT<<2) | 0b11;
+        ecan_buf[7][1] = (pid&0xFFF0)>>4;
+        ecan_buf[7][2] = ((pid&0x000F)<<12) | (FT_PKT_SINGLE<<10) | 1; // 1 data byte
         ecan_buf[7][3] = 0x00; // 0x00 == terminate string
         _TXREQ7=1; // transmit buffer 7
     }
@@ -90,9 +90,9 @@ void ecan_tx_float(u16 pid, u16 msg_type, float val)
 {
     u16 *val_ptr = (u16 *)&val;
     while (_TXREQ0) ; // wait for first transmit buffer to become available
-    ecan_buf[0][0] = (msg_type<<4) | 0b11;
-    ecan_buf[0][1] = ((pid&0xFFC0)>>6) | (MF_PKT_SINGLE<<10);
-    ecan_buf[0][2] = ((pid&0x003F)<<10) | 4;
+    ecan_buf[0][0] = (msg_type<<2) | 0b11;
+    ecan_buf[0][1] = (pid&0xFFF0)>>4;
+    ecan_buf[0][2] = ((pid&0x000F)<<12) | (FT_PKT_SINGLE<<10) | 4;
     ecan_buf[0][3] = val_ptr[0]; // byte 0 and 1: TODO!!! check endianness
     ecan_buf[0][4] = val_ptr[1]; // byte 2 and 3
     _TXREQ0=1;
@@ -101,9 +101,9 @@ void ecan_tx_float(u16 pid, u16 msg_type, float val)
 void ecan_tx_str(u16 pid, char* str, u16 msg_type, u8 len)
 {
     while (_TXREQ0) ; // wait for first transmit buffer to become available
-    ecan_buf[0][0] = (msg_type<<4) | 0b11;
-    ecan_buf[0][1] = ((pid&0xFFC0)>>6) | (MF_PKT_SINGLE<<10);
-    ecan_buf[0][2] = ((pid&0x003F)<<10) | len;
+    ecan_buf[0][0] = (msg_type<<2) | 0b11;
+    ecan_buf[0][1] = (pid&0xFFF0)>>4;
+    ecan_buf[0][2] = ((pid&0x000F)<<12) | (FT_PKT_SINGLE<<10) | len;
     char* dst = (char*)&ecan_buf[0][3];
     memcpy(dst,str,len);
     _TXREQ0=1;
@@ -113,9 +113,9 @@ void ecan_tx(u16 pid, u16 d0, u16 d2, u16 d4, u16 d6, u16 msg_type, u8 flags, u8
 {
     while (_TXREQ0) ; // wait for first transmit buffer to become available
     // Always transmit using Extended Identifier format
-    ecan_buf[0][0] = (msg_type<<4) | 0b11;
-    ecan_buf[0][1] = ((pid&0xFFC0)>>6) | ((flags&0x03)<<10);
-    ecan_buf[0][2] = ((pid&0x003F)<<10) | ((flags&ECAN_FLAGS_RTR)?0x200:0) | len;
+    ecan_buf[0][0] = (msg_type<<2) | 0b11;
+    ecan_buf[0][1] = (pid&0xFFF0)>>4;
+    ecan_buf[0][2] = ((pid&0x000F)<<12) | ((flags&0x3)<<10) | ((flags&ECAN_FLAGS_RTR)?0x200:0) | len;
     ecan_buf[0][3] = d0; // byte 0 and 1
     ecan_buf[0][4] = d2; // byte 2 and 3
     ecan_buf[0][5] = d4; // byte 4 and 5

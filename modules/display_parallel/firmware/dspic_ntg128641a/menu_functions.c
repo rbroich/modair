@@ -14,6 +14,7 @@
 #define THIS_MODULE_ID 0xFF02
 
 s16 idx = 0;
+u8 tmp_cnt = 0;
 extern volatile u16 heap_mem[HEAP_MEM_SIZE];
 extern volatile u8 heap_item_cnt;
 extern volatile u8 heap_alloc;
@@ -22,14 +23,20 @@ void* menu_fnc_homescreen(u8 key_input)
 {
     void *ret = &menu_fnc_homescreen;
 
+    heap_alloc = HEAP_ALLOC_HOME;
     // draw to screen
     draw_widgets(idx);
-    LCD_rect(0, 0, LCD_X-1, LCD_Y-1, LCD_BLACK, 0);
-    LCD_string("ModAir", idx+20, 30, font_def);
+
+    if (tmp_cnt) {
+        tmp_cnt--;
+        if (idx)
+            LCD_rect(LCD_X/2, LCD_Y-1, LCD_X-1, LCD_Y-1, LCD_BLACK, 0);
+        else LCD_rect(0, LCD_Y-1, LCD_X/2-1, LCD_Y-1, LCD_BLACK, 0);
+    }
 
     switch(key_input) {
-        case C_ROT_INC: idx++; if (idx>40) idx=40; break;
-        case C_ROT_DEC: idx--; if (idx<0) idx=0; break;
+        case C_ROT_INC: idx++; if (idx>1) idx=1; tmp_cnt=15; break;
+        case C_ROT_DEC: idx--; if (idx<0) idx=0; tmp_cnt=15; break;
         case C_ROT_PUSH: ret = &menu_fnc_main; idx=0; break;
         case C_ROT_HOLD: ret = &menu_fnc_config; idx=0; break;
     }
@@ -43,6 +50,7 @@ void* menu_fnc_main(u8 key_input)
     LCD_line(0, 8, LCD_X-1, 8, LCD_BLACK);
 
     heap_alloc = HEAP_ALLOC_NONE; // deallocate heap memory
+    heap_item_cnt = 0;
     switch(key_input) {
         case C_ROT_INC: idx++; if (idx>2) idx=2; break;
         case C_ROT_DEC: idx--; if (idx<0) idx=0; break;
@@ -84,15 +92,15 @@ void* menu_fnc_viewmodules(u8 key_input)
                 case 0: ret = &menu_fnc_main; break;
                 case 1: ret = &menu_fnc_viewmoduleparams;
                     heap_alloc = HEAP_ALLOC_PIDNAME;
-                    ecan_tx(THIS_MODULE_ID, DPI_ALL_MODULES, MC_GET_NAME, 0, 0, MT_REMOTE_CMD, 0, 3); // send a GET_NAME request to all modules
+                    ecan_tx(THIS_MODULE_ID, DPI_ALL_MODULES, RC_GET_NAME, 0, 0, MT_REMOTE_CMD, 0, 3); // send a GET_NAME request to all modules
                     break;
                 case 2: ret = &menu_fnc_accessmoduleconsole;
                     heap_alloc = HEAP_ALLOC_PIDNAME;
-                    ecan_tx(THIS_MODULE_ID, DPI_ALL_MODULES, MC_GET_NAME, 0, 0, MT_REMOTE_CMD, 0, 3); // send a GET_NAME request to all modules
+                    ecan_tx(THIS_MODULE_ID, DPI_ALL_MODULES, RC_GET_NAME, 0, 0, MT_REMOTE_CMD, 0, 3); // send a GET_NAME request to all modules
                     break;
                 case 3: ret = &menu_fnc_viewparams;
                     heap_alloc = HEAP_ALLOC_PIDNAME;
-                    ecan_tx(THIS_MODULE_ID, DPI_ALL_PARAMETERS, MC_GET_NAME, 0, 0, MT_REMOTE_CMD, 0, 3); // send a GET_NAME request to all parameters
+                    ecan_tx(THIS_MODULE_ID, DPI_ALL_PARAMETERS, RC_GET_NAME, 0, 0, MT_REMOTE_CMD, 0, 3); // send a GET_NAME request to all parameters
                     break;
             }
             heap_item_cnt = 0; // reset current list counter
@@ -119,7 +127,7 @@ void* menu_fnc_viewmoduleparams(u8 key_input)
                 ret = &menu_fnc_viewparams;
                 // send a GET_NAME request to the selected module
                 s_pid_name* pid_names = (s_pid_name*)&heap_mem[0];
-                ecan_tx(THIS_MODULE_ID, pid_names[idx-1].pid, MC_GET_NAME, 0, 0, MT_REMOTE_CMD, 0, 3);
+                ecan_tx(THIS_MODULE_ID, pid_names[idx-1].pid, RC_GET_NAME, 0, 0, MT_REMOTE_CMD, 0, 3);
                 heap_item_cnt = 0; // reset current list counter
             }
             idx=0;
@@ -147,7 +155,7 @@ void* menu_fnc_accessmoduleconsole(u8 key_input)
                 console_txt->pid = pid_names[idx-1].pid;
                 memset((char*)console_txt->txt, ' ', 16*4);
                 // send a TERMINAL_KEY request to the selected module (with KEYSTROKE==0x00) to bring up the menu
-                ecan_tx(THIS_MODULE_ID, console_txt->pid, MC_TERMINAL_KEY | (0x00<<8), 0, 0, MT_REMOTE_CMD, 0, 4);
+                ecan_tx(THIS_MODULE_ID, console_txt->pid, RC_CONSOLE_KEY | (0x00<<8), 0, 0, MT_REMOTE_CMD, 0, 4);
                 heap_item_cnt = 0; // reset current list counter
                 heap_alloc = HEAP_ALLOC_CONSOLETXT; // allocate heap memory
             }
@@ -179,7 +187,7 @@ void* menu_fnc_accessconsole(u8 key_input)
     } else return &menu_fnc_homescreen; // exit to home screen
 
     if (key_input) { // send the KEYCODE to the selected module
-        ecan_tx(THIS_MODULE_ID, console_txt->pid, MC_TERMINAL_KEY | (key_input<<8), 0, 0, MT_REMOTE_CMD, 0, 4);
+        ecan_tx(THIS_MODULE_ID, console_txt->pid, RC_CONSOLE_KEY | (key_input<<8), 0, 0, MT_REMOTE_CMD, 0, 4);
     }
     return &menu_fnc_accessconsole;
 }
@@ -202,7 +210,7 @@ void* menu_fnc_viewparams(u8 key_input)
                 console_txt->pid = pid_names[idx-1].pid;
                 memset((char*)console_txt->txt, ' ', 16*4);
                 // send a TERMINAL_KEY request to the selected parameter (with KEYSTROKE==0x00) to bring up the menu
-                ecan_tx(THIS_MODULE_ID, console_txt->pid, MC_TERMINAL_KEY | (0x00<<8), 0, 0, MT_REMOTE_CMD, 0, 4);
+                ecan_tx(THIS_MODULE_ID, console_txt->pid, RC_CONSOLE_KEY | (0x00<<8), 0, 0, MT_REMOTE_CMD, 0, 4);
                 heap_item_cnt = 0; // reset current list counter
                 heap_alloc = HEAP_ALLOC_CONSOLETXT; // allocate heap memory
             }
@@ -354,9 +362,9 @@ void* menu_fnc_debugbus(u8 key_input)
         lcd_setpixel(119,2+8*i,LCD_BLACK);
         lcd_setpixel(119,3+8*i,LCD_BLACK);
         lcd_setpixel(119,4+8*i,LCD_BLACK);
-        if (!(can_dbgs[i].flags & ECAN_FLAGS_nSOF))
+        if (!(can_dbgs[i].flags & 0x1))
             lcd_setpixel(120,3+8*i,LCD_BLACK);
-        if (!(can_dbgs[i].flags & ECAN_FLAGS_nEOF))
+        if (!(can_dbgs[i].flags & 0x2))
             lcd_setpixel(121,3+8*i,LCD_BLACK);
         lcd_setpixel(122,2+8*i,LCD_BLACK);
         lcd_setpixel(122,3+8*i,LCD_BLACK);

@@ -9,6 +9,12 @@
 #define HEAP_ALLOC_PIDNAME      1
 #define HEAP_ALLOC_CANDEBUG     2
 #define HEAP_ALLOC_CONSOLETXT   3
+#define HEAP_ALLOC_HOME         4
+
+typedef struct {
+    u16 pid;
+    float val;
+} s_pid_val;
 
 typedef struct {
     u16 pid;

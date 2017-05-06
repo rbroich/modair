@@ -11,8 +11,6 @@
 #define U1RXt                   TRISBbits.TRISB8
 #define U1RX                    PORTBbits.RB8
 
-#define ECAN_FLAGS_nSOF         0x01
-#define ECAN_FLAGS_nEOF         0x02
 #define ECAN_FLAGS_RTR          0x04
 
 void ecan_irq(void);

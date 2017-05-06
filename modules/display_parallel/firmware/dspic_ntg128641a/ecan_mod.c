@@ -7,20 +7,19 @@ extern void ecan_rx(u16 pid, u16 *data, u8 msg_type, u8 flags, u8 len);
 void ecan_irq(void)
 {
     u8 buf_sel = C1VECbits.ICODE;
-    if (!(ecan_buf[buf_sel][0] & 0x0001)) // Extended Identifier (29-bit ID)
-        return;
-
-    // CID = CAN-ID = 0b000s.ssss.ssss.ssee.eeee.eeee.eeee.eeee
-    // where s [bit28:18] = SID (11 bit)
-    //       e [bit17:00] = EID (18 bit)
-    u8 msg_type = (ecan_buf[buf_sel][0] & 0x0FF0) >> 4;
-    u8 len = ecan_buf[buf_sel][2]&0x000F; // Data Length Code
-    u16 pid = ecan_buf[buf_sel][2] >> 10;
-    pid |= ecan_buf[buf_sel][1] << 6;
-    u8 flags = (ecan_buf[buf_sel][1] & 0x0C00) >> 10;
-    if (ecan_buf[buf_sel][2] & 0x0200) // remote frame request
-        flags |= ECAN_FLAGS_RTR;
-    ecan_rx(pid, &ecan_buf[buf_sel][3], msg_type, flags, len);
+    if (ecan_buf[buf_sel][0] & 0x0001) { // Extended Identifier (29-bit ID)
+        // CID = CAN-ID = 0b000s.ssss.ssss.ssee.eeee.eeee.eeee.eeee
+        // where s [bit28:18] = SID (11 bit)
+        //       e [bit17:00] = EID (18 bit)
+        u8 msg_type = (ecan_buf[buf_sel][0] & 0x03FC) >> 2;
+        u8 len = ecan_buf[buf_sel][2]&0x000F; // Data Length Code
+        u16 pid = (ecan_buf[buf_sel][2]&0xF000) >> 12;
+        pid |= ecan_buf[buf_sel][1] << 4;
+        u8 flags = (ecan_buf[buf_sel][2] & 0x0C00) >> 10;
+        if (ecan_buf[buf_sel][2] & 0x0200) // remote frame request
+            flags |= ECAN_FLAGS_RTR;
+        ecan_rx(pid, &ecan_buf[buf_sel][3], msg_type, flags, len);
+    }
     C1RXFUL1 = 0xFFFF ^ (1<<buf_sel); // Clear Rx Buffer Full Flag
     C1INTFbits.TBIF = 0; // Clear TX Buffer Interrupt Flag
     C1INTFbits.RBIF = 0; // Clear RX Buffer Interrupt Flag
@@ -30,9 +29,9 @@ void ecan_tx(u16 pid, u16 d0, u16 d2, u16 d4, u16 d6, u8 msg_type, u8 flags, u8 
 {
     while (_TXREQ0) ; // wait for first transmit buffer to become available
     // Always transmit using Extended Identifier format
-    ecan_buf[0][0] = (msg_type<<4) | 0b11;
-    ecan_buf[0][1] = ((pid&0xFFC0)>>6) | ((flags&0x03)<<10);
-    ecan_buf[0][2] = ((pid&0x003F)<<10) | ((flags&ECAN_FLAGS_RTR)?0x200:0) | len;
+    ecan_buf[0][0] = (msg_type<<2) | 0b11;
+    ecan_buf[0][1] = (pid&0xFFF0)>>4;
+    ecan_buf[0][2] = ((pid&0x000F)<<12) | ((flags&0x3)<<10) | ((flags&ECAN_FLAGS_RTR)?0x200:0) | len;
     ecan_buf[0][3] = d0; // byte 0 and 1
     ecan_buf[0][4] = d2; // byte 2 and 3
     ecan_buf[0][5] = d4; // byte 4 and 5

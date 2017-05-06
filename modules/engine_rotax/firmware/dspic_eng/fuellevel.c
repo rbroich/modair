@@ -27,7 +27,7 @@ void* fuellevel_fnc_homescreen(u8 idx, u8 key_input)
 {
     // first process key input
     switch(key_input) {
-        case TK_ROT_PUSH: return 0;
+        case KP_ROT_PUSH: return 0;
     }
     // then print updated console text
     int i;

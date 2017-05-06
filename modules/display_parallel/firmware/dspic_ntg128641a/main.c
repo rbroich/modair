@@ -22,6 +22,9 @@ volatile __attribute__((far)) u16 heap_mem[HEAP_MEM_SIZE];
 volatile u8 heap_item_cnt = 0;
 volatile u8 heap_alloc = 0;
 
+volatile s_pid_val pid_vals[64];
+volatile u16 pid_vals_cnt = 0;
+
 volatile u8 rot_enc_input = 0;
 
 // use function pointers to navigate through the menu;
@@ -103,8 +106,18 @@ void ecan_rx(u16 pid, u16 *data, u8 msg_type, u8 flags, u8 len)
     }
 
     switch (msg_type) {
+        case MT_BROADCAST_VALUE: {
+                float *val = (float*)data;
+                u16 i;
+                for (i=0;i<pid_vals_cnt;i++)
+                if (pid_vals[i].pid == pid) {
+                    pid_vals[i].val = *val;
+                    break;
+                }
+            }
+            break;
         case MT_BROADCAST_NAME:
-            if ((heap_alloc==HEAP_ALLOC_PIDNAME)&&(heap_item_cnt<MAX_PID_NAME_ITEMS)&&(flags==0)) {
+            if ((heap_alloc==HEAP_ALLOC_PIDNAME)&&(heap_item_cnt<MAX_PID_NAME_ITEMS)&&(flags==FT_PKT_SINGLE)) {
                 s_pid_name* pid_names = (s_pid_name*)&heap_mem[0];
                 pid_names[heap_item_cnt].pid = pid;
                 pid_names[heap_item_cnt].u.nval[0] = data[0];
@@ -116,11 +129,11 @@ void ecan_rx(u16 pid, u16 *data, u8 msg_type, u8 flags, u8 len)
                 heap_item_cnt++;
             }
             break;
-        case MT_TERMINAL_TXT:
+        case MT_CONSOLE_TEXT:
             if (heap_alloc==HEAP_ALLOC_CONSOLETXT) {
                 s_console_txt* console_txt = (s_console_txt*)&heap_mem[0];
                 if (console_txt->pid == pid) {
-                    if (!(flags&0x01)) { // MF_PKT_SINGLE or MF_PKT_START
+                    if ((flags==FT_PKT_START)||(flags==FT_PKT_SINGLE)) {
                         memset((char*)console_txt->txt, ' ', 16*4);
                         heap_item_cnt=0;
                     }

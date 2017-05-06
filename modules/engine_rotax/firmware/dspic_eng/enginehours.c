@@ -45,14 +45,10 @@ void enginehours_vinlost_irq(void)
     }
 }
 
-void enginehours_ecanrx(u8 idx, u16 pid, u16 *data, u8 msg_type, u8 flags, u8 len)
+void engineon_sendval(u8 idx)
 {
-    u8* dptr = (u8*)data;
-    if ((msg_type==MT_REMOTE_CMD)&&(data[0]==PARAM_LIST[idx].pid)) {
-        if ((dptr[2]==MC_TERMINAL_KEY)&&(len==4)&&(flags==0)) // Terminal keystroke
-            enginehours_fnc_homescreen(idx, dptr[3]);
-            // current_menu_fnc = (*current_menu_fnc)(dptr[3]); // can remote console function
-    }
+    float hrs = (float)engine_on_sec/(60.0*60.0);
+    ecan_tx_float(PARAM_LIST[idx].pid, MT_BROADCAST_VALUE, hrs); // Send value
 }
 
 void enginehours_cntdwn(u8 idx)
@@ -65,7 +61,7 @@ void* enginehours_fnc_homescreen(u8 idx, u8 key_input)
 {
     // first process key input
     switch(key_input) {
-        case TK_ROT_PUSH: return 0;
+        case KP_ROT_PUSH: return 0;
     }
     // then print updated console text
     int i;

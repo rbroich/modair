@@ -66,10 +66,10 @@ const s_param_const PARAM_CONST[PARAM_CNT] = {
     {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&thermocouple_cntdwn, .menu_fnc_ptr=&thermocouple_fnc_homescreen  }, // Thermocouple 2
     {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&rpm_cntdwn,          .menu_fnc_ptr=0                             }, // RPM
     {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&enginehours_cntdwn,  .menu_fnc_ptr=&enginehours_fnc_homescreen   }, // Engine Hours / Hobbs Meter
-    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=0,                    .menu_fnc_ptr=0                             }, // Engine On Time since started
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&engineon_sendval,    .menu_fnc_ptr=0                             }, // Engine On Time since started
     {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=0,                    .menu_fnc_ptr=0                             }, // Maintenance Timer
     {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&fuellevel_cntdwn,    .menu_fnc_ptr=&fuellevel_fnc_homescreen     }, // Fuel Level
-    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&watertemp_cntdwn,    .menu_fnc_ptr=0                             }, // Water Temperature
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&watertemp_cntdwn,    .menu_fnc_ptr=&watertemp_menu               }, // Water Temperature
     {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=0,                    .menu_fnc_ptr=0                             }, // Relay Output
     {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=0,                    .menu_fnc_ptr=0                             }, // Open Drain 1 Output
     {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=0,                    .menu_fnc_ptr=0                             }, // Open Drain 2 Output
@@ -87,7 +87,7 @@ const s_fuelcal fuellevel_rom = { // converts ADC value to fuel level in 0.01 li
 
 const s_watertemp watertemp_rom = { // converts ADC value to water temperature in 0.1 degrees
     .WTx = {0,41,72,126,239,360,638,1154,3320,3740,3892,3986,4095,4095,4095,4095},
-    .WTy = {2000,1800,1500,1240,1000,840,650,440,-40,-190,-300,-400,-500,-500,-500,-500}
+    .WTy = {2000,1800,1500,1240,1000,840,650,440,-40,-190,-300,0,0,0,0,0}
 };
 
 const u16 rmp_mul = 20; // CNTs per 0.5s => 2.0 (cnts/sec) * 60.0 (cnts/min) / 6.0 (rotax582 setting?)
@@ -157,7 +157,7 @@ void module_ecanrx(u8 idx, u16 pid, u16 *data, u8 msg_type, u8 flags, u8 len)
     if (idx) return; // expect idx==0 for MODULE
 
     // Get Name
-    if ((msg_type==MT_REMOTE_CMD)&&(dptr[2]==MC_GET_NAME)&&(flags==0)&&(len==3)) {
+    if ((msg_type==MT_REMOTE_CMD)&&(dptr[2]==RC_GET_NAME)&&(flags==0)&&(len==3)) {
         if (data[0]==DPI_ALL_MODULES) // send this module name
             ecan_tx_str(PARAM_LIST[0].pid, (char*)PARAM_LIST[0].name, MT_BROADCAST_NAME, 8);
 
@@ -176,7 +176,7 @@ void module_ecanrx(u8 idx, u16 pid, u16 *data, u8 msg_type, u8 flags, u8 len)
     }
 
     // Get Value
-    if ( ((msg_type==MT_REMOTE_CMD)&&(dptr[2]==MC_GET_VALUE)&&(flags==0)&&(len==3)) ||
+    if ( ((msg_type==MT_REMOTE_CMD)&&(dptr[2]==RC_GET_VALUE)&&(flags==0)&&(len==3)) ||
        ((msg_type==MT_BROADCAST_VALUE)&&(flags==ECAN_FLAGS_RTR)&&(len==0)) ) {
         for (i=1;i<PARAM_CNT;i++)
             if ((data[0]==PARAM_LIST[i].pid)&&(PARAM_CONST[i].sendval_fnc_ptr))
@@ -184,7 +184,7 @@ void module_ecanrx(u8 idx, u16 pid, u16 *data, u8 msg_type, u8 flags, u8 len)
     }
 
     // Remote Menu / Terminal Console
-    if ((msg_type==MT_REMOTE_CMD)&&(dptr[2]==MC_TERMINAL_KEY)&&(flags==0)&&(len==4)) {
+    if ((msg_type==MT_REMOTE_CMD)&&(dptr[2]==RC_CONSOLE_KEY)&&(flags==0)&&(len==4)) {
         for (i=0;i<PARAM_CNT;i++)
             if (data[0]==PARAM_LIST[i].pid) {
                 static u8 current_menu_idx = 255;
