@@ -5,6 +5,9 @@
 
 #define LCD_Y           64
 #define LCD_X           256
+#define LCD_WHITE       0
+#define LCD_BLACK       1
+
 #define LCD_CHAR_WIDTH  8 // 6 or 8 bits depending on FS (H:6x8 L:8x8)
 
 #define LCD_D7          _RB15
@@ -92,6 +95,8 @@ void lcd_write_data(u8 data);
 u8 lcd_read_data(void);
 u8 lcd_read_status(void);
 void lcd_init(void);
-void lcd_bitmap(u8 *buff);
+void lcd_update(void);
+void lcd_clrbuff(void);
+void lcd_setpixel(u8 x, u8 y, u8 color);
 
 #endif

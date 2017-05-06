@@ -1,5 +1,7 @@
 #include "glcd.h"
 
+u8 lcd_buff[LCD_X*LCD_Y/8];
+
 u8 lcd_read_status(void)
 {
     u8 status = 0;
@@ -74,8 +76,10 @@ void lcd_init(void)
     lcd_write_command(LCD_DISPLAY_MODES_GRAPHICS_ON);
 }
 
-void lcd_bitmap(u8 *buff)
+void lcd_update() // copy display buffer to the LCD
 {
+    lcd_init();
+    
     while ((lcd_read_status()&0x03) != 0x03); // Not busy: STA0=1 and STA1=1
     lcd_write_data(0x00);
     while ((lcd_read_status()&0x03) != 0x03); // Not busy: STA0=1 and STA1=1
@@ -90,8 +94,25 @@ void lcd_bitmap(u8 *buff)
     for(k=0;k<LCD_Y*LCD_X/8;k++)
     {
         while ((lcd_read_status()&0x08) != 0x08); // While not STA3
-        lcd_write_data(buff[k]);
+        lcd_write_data(lcd_buff[k]);
     }
     while ((lcd_read_status()&0x08) != 0x08); // While not STA3
     lcd_write_command(LCD_DATA_AUTO_RESET);
+}
+
+void lcd_clrbuff() // clear the display buffer
+{
+    u16 i;
+    for (i=0;i<LCD_X*LCD_Y/8;i++)
+        lcd_buff[i] = 0;
+}
+
+void lcd_setpixel(u8 x, u8 y, u8 color)
+{
+    if ((x>=LCD_X)||(y>=LCD_Y))
+        return;
+    if (color == LCD_BLACK)
+        lcd_buff[y*LCD_X/8 + ((x & 0xF8) >> 3)] |= (1<<(7-(x&0x07))); // set bit
+    if (color == LCD_WHITE)
+        lcd_buff[y*LCD_X/8 + ((x & 0xF8) >> 3)] &= (~(1<<(7-(x&0x07)))); // clear bit
 }

@@ -19,6 +19,7 @@
 #include "enginehours.h"
 #include "opendrain.h"
 #include "watertemp.h"
+#include "ublox_gps.h"
 
 //==============================================================================
 //--------------------FUNCTION PROTOTYPES---------------------------------------
@@ -56,7 +57,12 @@ __attribute__((aligned(FLASH_PAGE_SIZE))) const s_param_settings PARAM_LIST[PARA
     {.pid=0x001D, .name="FF AVE  ", .rate=10}, // 5 Hz
     {.pid=0x001E, .name="FUEL END", .rate=25}, // 2 Hz
     {.pid=0x001F, .name="FUEL RNG", .rate=25}, // 2 Hz
-    {.pid=0x0020, .name="FUEL USE", .rate=25}  // 2 Hz
+    {.pid=0x0020, .name="FUEL USE", .rate=25}, // 2 Hz
+    {.pid=0x0040, .name="GPS VEL ", .rate=10}, // 5 Hz
+    {.pid=0x0041, .name="GPS ALT ", .rate=10}, // 5 Hz
+    {.pid=0x0042, .name="GPS HDG ", .rate=10}, // 5 Hz
+    {.pid=0x0043, .name="TIME    ", .rate=50}, // 1 Hz
+    {.pid=0x0044, .name="DATE    ", .rate=50}  // 1 Hz
 };
 
 const s_param_const PARAM_CONST[PARAM_CNT] = {
@@ -77,7 +83,12 @@ const s_param_const PARAM_CONST[PARAM_CNT] = {
     {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=0,                    .menu_fnc_ptr=0                             }, // Fuel Flow Average since started
     {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=0,                    .menu_fnc_ptr=0                             }, // Time to Empty Tank (fuel endurance)
     {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=0,                    .menu_fnc_ptr=0                             }, // Range to Empty Tank (fuel range)
-    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=0,                    .menu_fnc_ptr=0                             }  // Fuel Burned
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=0,                    .menu_fnc_ptr=0                             }, // Fuel Burned
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&gps_vel_sendval,     .menu_fnc_ptr=&gps_menu                     }, // GPS Ground Speed
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&gps_alt_sendval,     .menu_fnc_ptr=&gps_menu                     }, // GPS Altitude
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&gps_hdg_sendval,     .menu_fnc_ptr=&gps_menu                     }, // GPS True Heading
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&gps_time_sendval,    .menu_fnc_ptr=&gps_menu                     }, // GPS Time
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&gps_date_sendval,    .menu_fnc_ptr=&gps_menu                     }  // GPS Date
 };
 
 const s_fuelcal fuellevel_rom = { // converts ADC value to fuel level in 0.01 liter
@@ -110,6 +121,13 @@ void __attribute__((interrupt, auto_psv)) _T1Interrupt(void)
     _T1IF = 0;  // clear the interrupt
 }
 
+void __attribute__((interrupt, auto_psv)) _U1RXInterrupt(void)
+{
+    u8 rx = U1RXREG;
+    ublox_gps_rx_irq(rx);
+    _U1RXIF = 0; //clear the flag for next interrupt
+}
+
 void __attribute__((interrupt, auto_psv)) _CNInterrupt(void)
 {
     fuelflow_cn_irq();
@@ -138,12 +156,16 @@ void irq_init(void)
     _AD1IP = 1; // lowest priority level
     _AD1IE = ENABLE; // ADC1 Event Interrupt Enable
 
+    _U1RXIF = 0; // UART1 Receive Flag
+    _U1RXIP = 2; // second lowest priority
+    _U1RXIE = ENABLE; // UART1 Receive Interrupt Enable
+
     _T1IF = 0; // Timer1 Flag
-    _T1IP = 2; // second lowest priority
+    _T1IP = 3; // third lowest priority level
     _T1IE = ENABLE; // timer1 interrupt enable
 
     _CNIF = 0; // ChangeNotification Flag
-    _CNIP = 3; // third lowest priority level
+    _CNIP = 4; // highest priority level
     _CNIE = ENABLE; // change notification interrupt enable
 }
 
@@ -223,6 +245,7 @@ int main(void)
     fuelflow_init();
     rpm_init();
     analog_init();
+    ublox_gps_init();
     tmr1_init(50); // 50 Hz == 20 ms ticks
     irq_init();
 
@@ -230,6 +253,9 @@ int main(void)
     {
         // handle CAN receive messages here
         ecan_process();
+
+        // process GPS packets
+        ublox_gps_process();
 
         // handle TMR timeout function calls here
         for (i=1;i<PARAM_CNT;i++)

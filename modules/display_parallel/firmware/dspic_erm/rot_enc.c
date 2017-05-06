@@ -1,8 +1,7 @@
 #include "rot_enc.h"
 
-volatile u8 rotpb_wait = 0;
 volatile u8 rotpb_cnt = 0;
-volatile u8 rot_flags = 0;
+extern volatile u8 rot_enc_input;
 
 void rot_enc_irq(void)
 {
@@ -21,33 +20,27 @@ void rot_enc_irq(void)
             if (PORTB_val&0b0010) // pushbutton not held
             {
                 if (pos_cnt > 2) // rotate left
-                    rot_flags |= rot_dec_flag;
+                    rot_enc_input = C_ROT_DEC;
                 if (pos_cnt < -2) // rotate right
-                    rot_flags |= rot_inc_flag;
-            } else { // pushbutton held down
-                rotpb_wait = 0;
+                    rot_enc_input = C_ROT_INC;
+            } else { // rotated while pushbutton held down
+                rotpb_cnt = 0; // don't trigger C_ROT_HOLD or C_ROT_LONGHOLD
                 if (pos_cnt > 2) // rotate left
-                    rot_flags |= rot_shift_dec_flag;
+                    rot_enc_input = C_ROT_HOLD_DEC;
                 if (pos_cnt < -2) // rotate right
-                    rot_flags |= rot_shift_inc_flag;
+                    rot_enc_input = C_ROT_HOLD_INC;
             }
             pos_cnt = 0;
-            if (rot_flags & (rot_dec_flag|rot_inc_flag|rot_shift_dec_flag|rot_shift_inc_flag))
-                rot_flags |= rot_mod_flag;
         }
     }
     if ((PORTB_val ^ PORTB_old)&0b0010) // push button changed
     {
         if (PORTB_val&0b0010) { // push button released
-            rotpb_cnt = 0;
-            if (rotpb_wait) {
-                rotpb_wait = 0;
-                rot_flags |= rot_push_flag;
-                rot_flags |= rot_mod_flag;
-            }
+            if (rotpb_cnt > (255-60)) // button held less than 1.2 sec for PUSH
+                rot_enc_input = C_ROT_PUSH;
+            rotpb_cnt = 0; // stop countdown in timer function
         } else { // push button engaged
-            rotpb_cnt = 60; // start timer: 60 x 20ms = 1.2 sec for rot_longpush_flag
-            rotpb_wait = 1;
+            rotpb_cnt = 255; // start countdown in timer function
         }
     }
     PORTB_old = PORTB_val;
@@ -57,10 +50,14 @@ void rot_enc_tmr(void) // called every 20 ms == 50 Hz
 {
     if (rotpb_cnt) {
         rotpb_cnt--;
-        if ((rotpb_cnt==0)&&(rotpb_wait)) {
-            rotpb_wait = 0;
-            rot_flags |= rot_longpush_flag;
-            rot_flags |= rot_mod_flag;
+        if (rotpb_cnt==(255-60)) { // 60 x 20ms = 1.2 sec for HOLD
+            rot_enc_input = C_ROT_HOLD;
+        }
+        if (rotpb_cnt==(255-120)) { // 120 x 20ms = 2.4 sec for LONG HOLD
+            rot_enc_input = C_ROT_LONGHOLD;
+        }
+        if (rotpb_cnt==(255-254)) { // 240 x 20ms = 4.8 sec for EXTRA LONG HOLD
+            rot_enc_input = C_ROT_EXTRALONGHOLD;
         }
     }
 }

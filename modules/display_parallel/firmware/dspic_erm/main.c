@@ -5,16 +5,31 @@
 #include "common.h"
 #include "config_bits.h"
 #include "led.h"
+#include "buzzer.h"
 #include "rot_enc.h"
 #include "glcd.h"
 #include "glcd_lib.h"
 #include "ecan_mod.h"
+#include "widgets.h"
+#include "menu_functions.h"
+#include "modair_bus.h"
+#include "heap.h"
 
 //==============================================================================
 //--------------------GLOBAL VARIABLES------------------------------------------
 //==============================================================================
-extern volatile u8 rot_flags;
+volatile __attribute__((far)) u16 heap_mem[HEAP_MEM_SIZE];
+volatile u8 heap_item_cnt = 0;
+volatile u8 heap_alloc = 0;
 
+volatile s_pid_val pid_vals[64];
+volatile u16 pid_vals_cnt = 0;
+
+volatile u8 rot_enc_input = 0;
+
+// use function pointers to navigate through the menu;
+// default screen after bootup: home screen
+void* (*current_menu_fnc)(u8) = &menu_fnc_homescreen;
 
 
 //==============================================================================
@@ -41,6 +56,16 @@ void __attribute__((interrupt, auto_psv)) _C1Interrupt(void)
 //==============================================================================
 //--------------------INIT FUNCTIONS--------------------------------------------
 //==============================================================================
+void osc_init(void)
+{
+    OSCTUN = 0; // 7.37 MHz
+    CLKDIV = 0; // N1=2, N2=2
+    PLLFBD = 63; // M=65
+    // Fosc = 7.37*M/(N1*N2) = 119.7625 MHz
+    // Fcy  = Fosc/2 = 59.88125 MIPS
+    while (OSCCONbits.LOCK!=1){}; // Wait for PLL to lock
+}
+
 void tmr1_init(u16 freq_hz)
 {
     T1CON = 0b1000000000110000; // TMR1 on, 1:256 prescale, Fosc/2
@@ -63,102 +88,105 @@ void irq_init(void)
 }
 
 //==============================================================================
-//--------------------MAIN LOOP-------------------------------------------------
+//--------------------COMMUNICATIONS HANDLER------------------------------------
 //==============================================================================
-
-
-
-u16 rx_cnt = 0;
-u32 cid_rx = 0x0;
-u8 len_rx = 0;
-u8 rtr_rx = 0;
-u16 data_rx[4] = {0,0,0,0};
-void ecan_rx(u32 cid, u8 len, u8 rtr, u16 *data)
+void ecan_rx(u16 pid, u16 *data, u8 msg_type, u8 flags, u8 len)
 {
-    cid_rx = cid;
-    len_rx = len;
-    rtr_rx = rtr;
-    data_rx[0] = data[0];
-    data_rx[1] = data[1];
-    data_rx[2] = data[2];
-    data_rx[3] = data[3];
-    rx_cnt++;
+    if ((heap_alloc==HEAP_ALLOC_CANDEBUG)&&(heap_item_cnt<8)) { // Debug-Bus menu is active
+        s_can_debug* can_dbgs = (s_can_debug*)&heap_mem[0];
+        can_dbgs[heap_item_cnt].pid = pid;
+        can_dbgs[heap_item_cnt].d0 = data[0];
+        can_dbgs[heap_item_cnt].d2 = data[1];
+        can_dbgs[heap_item_cnt].d4 = data[2];
+        can_dbgs[heap_item_cnt].d6 = data[3];
+        can_dbgs[heap_item_cnt].msg_type = msg_type;
+        can_dbgs[heap_item_cnt].len = len;
+        can_dbgs[heap_item_cnt].flags = flags;
+        heap_item_cnt++;
+    }
+
+    switch (msg_type) {
+        case MT_BROADCAST_VALUE: {
+                float *val = (float*)data;
+                u16 i;
+                for (i=0;i<pid_vals_cnt;i++)
+                if (pid_vals[i].pid == pid) {
+                    pid_vals[i].val = *val;
+                    break;
+                }
+            }
+            break;
+        case MT_BROADCAST_NAME:
+            if ((heap_alloc==HEAP_ALLOC_PIDNAME)&&(heap_item_cnt<MAX_PID_NAME_ITEMS)&&(flags==FT_PKT_SINGLE)) {
+                s_pid_name* pid_names = (s_pid_name*)&heap_mem[0];
+                pid_names[heap_item_cnt].pid = pid;
+                pid_names[heap_item_cnt].u.nval[0] = data[0];
+                pid_names[heap_item_cnt].u.nval[1] = data[1];
+                pid_names[heap_item_cnt].u.nval[2] = data[2];
+                pid_names[heap_item_cnt].u.nval[3] = data[3];
+                if (len<8) // terminate string
+                    pid_names[heap_item_cnt].u.name[len] = 0x00;
+                heap_item_cnt++;
+            }
+            break;
+        case MT_CONSOLE_TEXT:
+            if (heap_alloc==HEAP_ALLOC_CONSOLETXT) {
+                s_console_txt* console_txt = (s_console_txt*)&heap_mem[0];
+                if (console_txt->pid == pid) {
+                    if ((flags==FT_PKT_START)||(flags==FT_PKT_SINGLE)) {
+                        memset((char*)console_txt->txt, ' ', 16*4);
+                        heap_item_cnt=0;
+                    }
+                    if (heap_item_cnt<8) {
+                        memcpy((char*)&console_txt->txt[heap_item_cnt*8], (char*)&data[0], len);
+                        heap_item_cnt++;
+                    }
+                }
+            }
+            break;
+    }
 }
 
 
 
+//==============================================================================
+//--------------------MAIN LOOP-------------------------------------------------
+//==============================================================================
 int main(void)
 {
-    OSCTUN = 0; // 7.37 MHz
-    CLKDIV = 0; // N1=2, N2=2
-    PLLFBD = 63; // M=65
-    // Fosc = 7.37*M/(N1*N2) = 119.7625 MHz
-    // Fcy  = Fosc/2 = 59.88125 MIPS
-    while (OSCCONbits.LOCK!=1){}; // Wait for PLL to lock
-    delay_ms(250);
-
+    osc_init();
     led_init();
+    buzzer_init();
     rot_enc_init();
     lcd_init();
     ecan_init();
     tmr1_init(50); // 50 Hz == 20 ms ticks
     irq_init();
 
-    //C1CTRL1bits.REQOP = 0b010; // enter loopback mode
-    //while(C1CTRL1bits.OPMODE != 0b010); // wait for loopback mode
+    read_widgets();
 
-    u16 tmp_data[4];
-	tmp_data[0] = 0xaaaa; // data
-	tmp_data[1] = 0xbbbb;
-	tmp_data[2] = 0xcccc;
-	tmp_data[3] = 0xdddd;
-    ecan_tx(0xFFFFFFFF,8,0,tmp_data);
+    while(1) {
+        // clear lcd-buffer
+        lcd_clrbuff();
 
-    u8 i = 10;
-    while(1)
-    {
-        if (rot_flags & rot_mod_flag)
-        {
-            if (rot_flags & rot_inc_flag)
-                i++;
-            if (rot_flags & rot_dec_flag)
-                i--;
-            if (rot_flags & rot_longpush_flag)
-                i=0;
-            rot_flags = 0;
-            u16 tmp_val = i;
-            ecan_tx(0x000ABCDE,1,0,&tmp_val);
+        // latch input from rotary-encoder (changed during IRQs)
+        u8 rot_enc_input_b = rot_enc_input;
+        rot_enc_input = 0;
+
+        // extra-long-press always gets you back to home-screen
+        if ((rot_enc_input_b == C_ROT_EXTRALONGHOLD) || (current_menu_fnc == NULL)) {
+            current_menu_fnc = &menu_fnc_homescreen;
+            heap_alloc = HEAP_ALLOC_NONE; // deallocate heap
+            rot_enc_input_b = 0;
         }
 
-        LCD_clear_buffer();
+        // call current menu-function and update next menu-function pointer
+        current_menu_fnc = (*current_menu_fnc)(rot_enc_input_b);
 
-        char tmp_str[16];
-        mprint_int(tmp_str, cid_rx>>16, 16, 4);
-        LCD_string(tmp_str, 20, 20, GLCD_ROTATE_0, GLCD_FONT_5x7, GLCD_COLOR_BLACK, 32);
-        mprint_int(tmp_str, cid_rx&0xFFFF, 16, 4);
-        LCD_string(tmp_str, 44, 20, GLCD_ROTATE_0, GLCD_FONT_5x7, GLCD_COLOR_BLACK, 32);
-        
-        LCD_string("Len:", 80, 20, GLCD_ROTATE_0, GLCD_FONT_5x7, GLCD_COLOR_BLACK, 32);
-        mprint_int(tmp_str, len_rx, 10, 1);
-        LCD_string(tmp_str, 104, 20, GLCD_ROTATE_0, GLCD_FONT_5x7, GLCD_COLOR_BLACK, 32);
-        
-        u8 j;
-        for (j=0;j<4;j++) {
-            mprint_int(tmp_str, data_rx[j], 16, 4);
-            LCD_string(tmp_str, 10+j*28, 36, GLCD_ROTATE_0, GLCD_FONT_5x7, GLCD_COLOR_BLACK, 32);
-        }
-        
-        mprint_int(tmp_str, rx_cnt, 10, 6);
-        LCD_string(tmp_str, 200, 28, GLCD_ROTATE_0, GLCD_FONT_5x7, GLCD_COLOR_BLACK, 32);
-
-        LCD_rect(0, 0, LCD_X-1, LCD_Y-1, GLCD_COLOR_BLACK, 0);
-        if (rtr_rx)
-            LCD_circle(100, 50, 5, GLCD_COLOR_BLACK);
-        LCD_string("ModAir", i, 10, GLCD_ROTATE_0, GLCD_FONT_5x7, GLCD_COLOR_BLACK, 32);
-
-        LCD_update();
-
+        // copy lcd-buffer to lcd
+        lcd_update();
         led_toggle();
-        //delay_ms(10);
     }
 }
+//==============================================================================
+//==============================================================================
