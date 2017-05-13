@@ -11,6 +11,8 @@
 #include "module_console.h"
 #include "i2c.h"
 #include "bmp180_driv.h"
+#include "mpu6050_driv.h"
+#include "hmc5883_driv.h"
 
 //==============================================================================
 //--------------------FUNCTION PROTOTYPES---------------------------------------
@@ -36,7 +38,9 @@ __attribute__((aligned(FLASH_PAGE_SIZE))) const s_param_settings PARAM_LIST[PARA
     {.pid=0x0092, .name="QNH     ", .rate=0},  // 0 Hz
     {.pid=0x0093, .name="Alt FL  ", .rate=5},  // 10 Hz
     {.pid=0x0094, .name="Alt QNH ", .rate=5},  // 10 Hz
-    {.pid=0x0095, .name="Air Temp", .rate=50}  // 1 Hz
+    {.pid=0x0095, .name="Air Temp", .rate=50}, // 1 Hz
+    {.pid=0x00A0, .name="HMC5883 ", .rate=50}, // 1 Hz
+    {.pid=0x00A1, .name="MPU6050 ", .rate=50}  // 1 Hz
 };
 
 const s_param_const PARAM_CONST[PARAM_CNT] = {
@@ -45,7 +49,9 @@ const s_param_const PARAM_CONST[PARAM_CNT] = {
     {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&bmp180_sendqnh,     .menu_fnc_ptr=&bmp180_editqnh               }, // QNH
     {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&bmp180_sendaltfl,   .menu_fnc_ptr=&bmp180_homescreen            }, // Altitude: Flight Level (i.e. QNH=101325 Pa)
     {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&bmp180_sendaltqnh,  .menu_fnc_ptr=&bmp180_homescreen            }, // Pressure Altitude: Based on user QNH
-    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&bmp180_sendtemp,    .menu_fnc_ptr=&bmp180_homescreen            }  // Outside Air Temperature in degrees C
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&bmp180_sendtemp,    .menu_fnc_ptr=&bmp180_homescreen            }, // Outside Air Temperature in degrees C
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=0,                   .menu_fnc_ptr=&hmc5883_homescreen           },
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=0,                   .menu_fnc_ptr=&mpu6050_homescreen           }
 };
 
 //==============================================================================
@@ -163,6 +169,8 @@ int main(void)
     ecan_init();
     i2c_init();
     bmp180_init(BMP180_ULTRALOWPOWER);
+    mpu6050_init();
+    hmc5883_init();
     tmr1_init(50); // 50 Hz == 20 ms ticks
     tmr2_init(1000); // 1000 Hz == 1 ms ticks
     irq_init();

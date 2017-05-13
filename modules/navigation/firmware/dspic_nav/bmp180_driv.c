@@ -44,41 +44,21 @@ void bmp180_process(void)
 
 void bmp180_write(u8 addr, u8 data)
 {
-    i2c_start();
-    i2c_write(BMP180_WRITE_CMD);
-    i2c_write(addr);
-    i2c_write(data);
-    i2c_stop();
+    i2c_write_bytes(BMP180_I2C_ADDR,addr,&data,1);
 }
 
 u16 bmp180_read_u16(u8 addr)
 {
-    u8 lo_byte, hi_byte;
-    i2c_start();
-    i2c_write(BMP180_WRITE_CMD);
-    i2c_write(addr);
-    i2c_restart();
-    i2c_write(BMP180_READ_CMD);
-    hi_byte = i2c_read();
-    i2c_ack();
-    lo_byte = i2c_read();
-    i2c_nack();
-    i2c_stop();
-    return ((hi_byte<<8) | lo_byte);
+    u8 data[2];
+    i2c_read_bytes(BMP180_I2C_ADDR,addr,data,2);
+    return ((data[0]<<8) | data[1]);
 }
 
 u8 bmp180_read_u8(u8 addr)
 {
-    u8 byte;
-    i2c_start();
-    i2c_write(BMP180_WRITE_CMD);
-    i2c_write(addr);
-    i2c_restart();
-    i2c_write(BMP180_READ_CMD);
-    byte = i2c_read();
-    i2c_nack();
-    i2c_stop();
-    return byte;
+    u8 data;
+    i2c_read_bytes(BMP180_I2C_ADDR,addr,&data,2);
+    return data;
 }
 
 void bmp180_init(u8 mode)

@@ -3,8 +3,7 @@
 
 #include "i2c.h"
 
-#define BMP180_READ_CMD             0xEF
-#define BMP180_WRITE_CMD            0xEE
+#define BMP180_I2C_ADDR             0xEE
 
 #define BMP180_ULTRALOWPOWER        0
 #define BMP180_STANDARD             1

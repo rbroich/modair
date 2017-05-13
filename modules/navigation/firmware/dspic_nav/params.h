@@ -4,7 +4,7 @@
 #include "common.h"
 
 // +1 for module       (sizeof(PARAM_LIST)/sizeof(s_param_settings))
-#define PARAM_CNT      6
+#define PARAM_CNT      8
 
 typedef struct {
     u16 pid;
