@@ -13,7 +13,7 @@ void rpm_cn_irq(void)
 {
     static u8 old_val = 1;
     u16 curr_val = RPM_IRQ;
-    if (curr_val ^ old_val) {
+    if ((curr_val ^ old_val)&&(curr_val)) { // only on rising edge
         rpm_cnt++;
     }
     old_val = RPM_IRQ;
