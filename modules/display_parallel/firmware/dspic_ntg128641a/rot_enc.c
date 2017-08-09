@@ -9,6 +9,7 @@ void rot_enc_irq(void)
     u16 PORTB_val = PORTB;
     if ((PORTB_val ^ PORTB_old)&0b1100) // encoder moved
     {
+#ifdef G_NEW_ENCODER // AliExpress Rotary Encoder
         static s8 pos_cnt = 0;
         if (((PORTB_old&0b0100)>>2) ^ ((PORTB_val&0b1000)>>3)){ // XOR bit old.ENC_A and new.ENC_B
             pos_cnt++;
@@ -32,6 +33,24 @@ void rot_enc_irq(void)
             }
             pos_cnt = 0;
         }
+#else // OLD Rotary Encoder (Philips)
+        if ((PORTB_old&0b0100) ^ (PORTB_val&0b0100)) // mROT_A unchanged: detent steady point
+        {
+            if (((PORTB_old&0b0100)>>2) ^ ((PORTB_val&0b1000)>>3)) { // XOR bit old.ENC_A and new.ENC_B
+                if (PORTB_val&0b0010) // pushbutton not held
+                    rot_enc_input = C_ROT_DEC;
+                else
+                    rot_enc_input = C_ROT_HOLD_DEC;
+            } else {
+                if (PORTB_val&0b0010) // pushbutton not held
+                    rot_enc_input = C_ROT_INC;
+                else
+                    rot_enc_input = C_ROT_HOLD_INC;
+            }
+            if (!(PORTB_val&0b0010)) // pushbutton is held
+                rotpb_cnt = 0; // don't trigger C_ROT_HOLD or C_ROT_LONGHOLD
+        }
+#endif
     }
     if ((PORTB_val ^ PORTB_old)&0b0010) // push button changed
     {

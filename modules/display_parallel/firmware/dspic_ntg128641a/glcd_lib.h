@@ -14,7 +14,8 @@
 
 #define font_def           GLCD_ROTATE_0,GLCD_FONT_5x7,LCD_BLACK,0xFF
 #define font_rot           GLCD_ROTATE_90,GLCD_FONT_5x7,LCD_BLACK,0xFF
-#define font_sml           GLCD_ROTATE_0,GLCD_FONT_3x5,LCD_BLACK,0xFF
+#define font_sml1          GLCD_ROTATE_0,GLCD_FONT_3x5,LCD_BLACK,0xFF
+#define font_sml2          GLCD_ROTATE_0,GLCD_FONT_4x5,LCD_BLACK,0xFF
 
 void LCD_string(char *str, u8 x, u8 y, u8 rotate, u8 font, u8 color, u8 max_char);
 void LCD_char(char digit, u8 x, u8 y, u8 rotate, u8 font, u8 color);

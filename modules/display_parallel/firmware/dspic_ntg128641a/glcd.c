@@ -97,11 +97,20 @@ void lcd_setpixel(u8 x, u8 y, u8 color) // set/clr a bit in the display buffer
 {
     if ((x>=LCD_X)||(y>=LCD_Y))
         return;
-
+#if ROTATE_SCREEN_90 // rotated
+    u8 xi = LCD_Y-1-y;
+    u8 yi = x;
+    u16 buff_offset = ((yi&0xF8)<<4)+xi;
+    if (color == LCD_BLACK)
+        lcd_buff[buff_offset] |= (1<<(yi&0x07)); // set bit
+    if (color == LCD_WHITE)
+        lcd_buff[buff_offset] &= (~(1<<(yi&0x07))); // clear bit
+#else // no rotation
     u16 buff_offset = ((y&0xF8)<<4)+x;
     if (color == LCD_BLACK)
         lcd_buff[buff_offset] |= (1<<(y&0x07)); // set bit
     if (color == LCD_WHITE)
         lcd_buff[buff_offset] &= (~(1<<(y&0x07))); // clear bit
+#endif
 }
 

@@ -23,10 +23,22 @@
 // Pin 19 LED A (+)
 // Pin 20 LED K (-)
 
+// Standard graphical axis
+// x=0: left
+// x=LCD_X-1: right
+// y=0: top
+// y=LCD_Y-1: bottom
+
 #include "common.h"
 
-#define LCD_X                   128
-#define LCD_Y                   64
+#define ROTATE_SCREEN_90        1
+#if ROTATE_SCREEN_90
+  #define LCD_X                   64
+  #define LCD_Y                   128
+#else
+  #define LCD_X                   128
+  #define LCD_Y                   64
+#endif
 #define LCD_WHITE               0
 #define LCD_BLACK               1
 

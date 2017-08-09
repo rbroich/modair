@@ -16,11 +16,11 @@ void LCD_string(char *str, u8 x, u8 y, u8 rotate, u8 font, u8 color, u8 max_char
         LCD_char(*str,x,y,rotate,font,color);
         str++;
         max_char--;
-        switch (rotate) {
-            case GLCD_ROTATE_0: x+=fwidth; break;
-            case GLCD_ROTATE_90: y+=fwidth; break;
-            case GLCD_ROTATE_180: x-=fwidth; break;
-            case GLCD_ROTATE_270: y-=fwidth; break;
+        switch (rotate) { // rotation: clock-wise
+            case GLCD_ROTATE_0: x+=fwidth; break; // left to right, (x,y) are top left corner
+            case GLCD_ROTATE_90: y-=fwidth; break; // bottom to top, (x,y) are bottom left corner
+            case GLCD_ROTATE_180: x-=fwidth; break; // right to left, (x,y) are bottom right corner
+            case GLCD_ROTATE_270: y+=fwidth; break; // top to bottom, (x,y) are top right corner
         }
     }
 }
@@ -28,44 +28,22 @@ void LCD_string(char *str, u8 x, u8 y, u8 rotate, u8 font, u8 color, u8 max_char
 void LCD_char(char digit, u8 x, u8 y, u8 rotate, u8 font, u8 color)
 {
     u8 *ptr;
-    u8 i,j;
-    if (font == GLCD_FONT_3x5) {
-        ptr = (u8 *)&font3x5[(digit-' ')*3];
-        for (j=0;j<3;j++)
-            for (i=0;i<5;i++)
-                if (ptr[j] & (1<<i))
-                    switch (rotate) {
-                        case GLCD_ROTATE_0: lcd_setpixel(x+j-1, y+i-2, color); break; // 0 degrees
-                        case GLCD_ROTATE_90: lcd_setpixel(x-i+2, y+j-1, color); break; // 90 degrees
-                        case GLCD_ROTATE_180: lcd_setpixel(x-j+1, y-i+2, color); break; // 180 degrees
-                        case GLCD_ROTATE_270: lcd_setpixel(x+i-2, y-j+1, color); break; // 270 degrees
-                    }
+    u8 fy,fx; // 0,0 = top left in font coordinate system
+    u8 fymax,fxmax;
+    switch (font) {
+        case GLCD_FONT_3x5: fxmax=3;fymax=5;ptr=(u8 *)&font3x5[(digit-' ')*3]; break;
+        case GLCD_FONT_4x5: fxmax=3;fymax=5;ptr=(u8 *)&font4x5[(digit-' ')*3]; break;
+        case GLCD_FONT_5x7: fxmax=5;fymax=7;ptr=(u8 *)&font5x7[(digit-' ')*5]; break;
     }
-    if (font == GLCD_FONT_4x5) {
-        // actually also 3x5
-        ptr = (u8 *)&font4x5[(digit-' ')*3];
-        for (j=0;j<3;j++)
-            for (i=0;i<5;i++)
-                if (ptr[j] & (1<<i))
-                    switch (rotate) {
-                        case GLCD_ROTATE_0: lcd_setpixel(x+j-1, y+i-2, color); break; // 0 degrees
-                        case GLCD_ROTATE_90: lcd_setpixel(x-i+2, y+j-1, color); break; // 90 degrees
-                        case GLCD_ROTATE_180: lcd_setpixel(x-j+1, y-i+2, color); break; // 180 degrees
-                        case GLCD_ROTATE_270: lcd_setpixel(x+i-2, y-j+1, color); break; // 270 degrees
-                    }
-    }
-    if (font == GLCD_FONT_5x7) {
-        ptr = (u8 *)&font5x7[(digit-' ')*5];
-        for (j=0;j<5;j++)
-            for (i=0;i<7;i++)
-                if (ptr[j] & (1<<i))
-                    switch (rotate) {
-                        case GLCD_ROTATE_0: lcd_setpixel(x+j-2, y+i-3, color); break; // 0 degrees
-                        case GLCD_ROTATE_90: lcd_setpixel(x-i+3, y+j-2, color); break; // 90 degrees
-                        case GLCD_ROTATE_180: lcd_setpixel(x-j+2, y-i+3, color); break; // 180 degrees
-                        case GLCD_ROTATE_270: lcd_setpixel(x+i-3, y-j+2, color); break; // 270 degrees
-                    }
-    }
+    for (fx=0;fx<fxmax;fx++) // loop over font coordinates
+    for (fy=0;fy<fymax;fy++)
+        if (ptr[fx] & (1<<fy)) // set appropriate pixel if the font pixel is active
+        switch (rotate) {
+            case GLCD_ROTATE_0: lcd_setpixel(x+fx, y+fy, color); break; // 0 degrees
+            case GLCD_ROTATE_90: lcd_setpixel(x+fy, y-fx, color); break; // 90 degrees
+            case GLCD_ROTATE_180: lcd_setpixel(x-fx, y-fy, color); break; // 180 degrees
+            case GLCD_ROTATE_270: lcd_setpixel(x-fy, y+fx, color); break; // 270 degrees
+        }
 }
 
 void LCD_rect(u8 x1, u8 y1, u8 x2, u8 y2, u8 color, u8 fill)

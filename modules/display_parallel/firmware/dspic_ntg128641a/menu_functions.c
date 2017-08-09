@@ -46,7 +46,7 @@ void* menu_fnc_homescreen(u8 key_input)
 void* menu_fnc_main(u8 key_input)
 {
     void *ret = &menu_fnc_main;
-    LCD_string("MAIN MENU", 2, 3, font_def);
+    LCD_string("MAIN MENU", 0, 0, font_def);
     LCD_line(0, 8, LCD_X-1, 8, LCD_BLACK);
 
     heap_alloc = HEAP_ALLOC_NONE; // deallocate heap memory
@@ -64,24 +64,24 @@ void* menu_fnc_main(u8 key_input)
             break;
     }
 
-    LCD_string("Exit", 10, 5+8*1, font_def);
-    LCD_string("View Modules", 10, 5+8*2, font_def);
-    LCD_string("Notes", 10, 5+8*3, font_def);
-    LCD_dot(3, 13+idx*8, 3, LCD_BLACK);
-    
+    LCD_string("Exit", 6, 2+8*1, font_def);
+    LCD_string("Modules", 6, 2+8*2, font_def);
+    LCD_string("Notes", 6, 2+8*3, font_def);
+    LCD_dot(2, 13+idx*8, 3, LCD_BLACK);
+
     return ret;
 }
 
 void* menu_fnc_viewmodules(u8 key_input)
 {
     void *ret = &menu_fnc_viewmodules;
-    LCD_string("VIEW ATTACHED MODULES", 2, 3, font_def);
+    LCD_string("MODULES", 0, 0, font_def);
     LCD_line(0, 8, LCD_X-1, 8, LCD_BLACK);
 
-    LCD_string("Exit", 10, 5+8*1, font_def);
-    LCD_string("Module params", 10, 5+8*2, font_def);
-    LCD_string("Module console", 10, 5+8*3, font_def);
-    LCD_string("All params", 10, 5+8*4, font_def);
+    LCD_string("Exit", 6, 2+8*1, font_def);
+    LCD_string("Params", 6, 2+8*2, font_def);
+    LCD_string("Console", 6, 2+8*3, font_def);
+    LCD_string("All params", 6, 2+8*4, font_def);
 
     heap_alloc = HEAP_ALLOC_NONE; // deallocate heap memory
     switch(key_input) {
@@ -107,7 +107,7 @@ void* menu_fnc_viewmodules(u8 key_input)
             idx=0;
             break;
     }
-    LCD_dot(3, 13+(idx%7)*8, 3, LCD_BLACK);
+    LCD_dot(2, 13+(idx%7)*8, 3, LCD_BLACK);
 
     return ret;
 }
@@ -115,7 +115,7 @@ void* menu_fnc_viewmodules(u8 key_input)
 void* menu_fnc_viewmoduleparams(u8 key_input)
 {
     void *ret = &menu_fnc_viewmoduleparams;
-    LCD_string("VIEW MODULE PARAMS", 2, 3, font_def);
+    LCD_string("MOD PARAMS", 0, 0, font_def);
 
     switch(key_input) {
         case C_ROT_INC: idx++; if (idx>heap_item_cnt) idx=heap_item_cnt; break;
@@ -140,7 +140,7 @@ void* menu_fnc_viewmoduleparams(u8 key_input)
 void* menu_fnc_accessmoduleconsole(u8 key_input)
 {
     void *ret = &menu_fnc_accessmoduleconsole;
-    LCD_string("ACCESS MODULE CONSOLE", 2, 3, font_def);
+    LCD_string("M.CONSOLE", 0, 0, font_def);
 
     switch(key_input) {
         case C_ROT_INC: idx++; if (idx>heap_item_cnt) idx=heap_item_cnt; break;
@@ -169,21 +169,21 @@ void* menu_fnc_accessmoduleconsole(u8 key_input)
 void* menu_fnc_accessconsole(u8 key_input)
 {
     s_console_txt* console_txt = (s_console_txt*)&heap_mem[0];
-    LCD_string("CONSOLE", 2, 3, font_def);
+    LCD_string("CONSOLE", 0, 0, font_def);
     if (heap_alloc != HEAP_ALLOC_CONSOLETXT)
         return 0;
     char tmp_str[16];
     mprint_int(tmp_str, console_txt->pid, 16, 4);
-    LCD_string(tmp_str, 10+7*6, 3, GLCD_ROTATE_0,GLCD_FONT_5x7,LCD_BLACK,4);
-    LCD_line(0, 8, LCD_X-1, 8, LCD_BLACK);
-    LCD_rect(6, 11, 8+16*6, 13+4*8, LCD_BLACK, 0);
+    LCD_string(tmp_str, 2, 8, GLCD_ROTATE_0,GLCD_FONT_5x7,LCD_BLACK,4);
 
+    LCD_line(0, 19, LCD_X-1, 19, LCD_BLACK);
+    LCD_line(0, 52, LCD_X-1, 52, LCD_BLACK);
     if (console_txt->txt[0]) {
         // print the remote console
-        LCD_string(&console_txt->txt[0], 10, 8+8*1, GLCD_ROTATE_0,GLCD_FONT_5x7,LCD_BLACK,16);
-        LCD_string(&console_txt->txt[16], 10, 8+8*2, GLCD_ROTATE_0,GLCD_FONT_5x7,LCD_BLACK,16);
-        LCD_string(&console_txt->txt[32], 10, 8+8*3, GLCD_ROTATE_0,GLCD_FONT_5x7,LCD_BLACK,16);
-        LCD_string(&console_txt->txt[48], 10, 8+8*4, GLCD_ROTATE_0,GLCD_FONT_5x7,LCD_BLACK,16);
+        LCD_string(&console_txt->txt[0], 0, 21+8*0, GLCD_ROTATE_0,GLCD_FONT_3x5,LCD_BLACK,16);
+        LCD_string(&console_txt->txt[16], 0, 21+8*1, GLCD_ROTATE_0,GLCD_FONT_3x5,LCD_BLACK,16);
+        LCD_string(&console_txt->txt[32], 0, 21+8*2, GLCD_ROTATE_0,GLCD_FONT_3x5,LCD_BLACK,16);
+        LCD_string(&console_txt->txt[48], 0, 21+8*3, GLCD_ROTATE_0,GLCD_FONT_3x5,LCD_BLACK,16);
     } else return &menu_fnc_homescreen; // exit to home screen
 
     if (key_input) { // send the KEYCODE to the selected module
@@ -195,7 +195,7 @@ void* menu_fnc_accessconsole(u8 key_input)
 void* menu_fnc_viewparams(u8 key_input)
 {
     void *ret = &menu_fnc_viewparams;
-    LCD_string("VIEW PARAMETERS", 2, 3, font_def);
+    LCD_string("PARAMS", 0, 0, font_def);
 
     switch(key_input) {
         case C_ROT_INC: idx++; if (idx>heap_item_cnt) idx=heap_item_cnt; break;
@@ -226,32 +226,32 @@ void print_pid_names(void)
     s_pid_name* pid_names = (s_pid_name*)&heap_mem[0];
     u8 i=0, j=1;
     char tmp_str[16];
-    u8 page = idx / 7;
+    u8 page = idx / 15;
     if (page==0) {
-        LCD_string("Exit", 10, 3+8*1, font_def);
-    } else { i=page*7-1; j=0; }
-    for (; (i<heap_item_cnt)&&(j<7); i++, j++) {
-        LCD_string((char*)&pid_names[i].u.name[0], 10, 3+8+8*j, GLCD_ROTATE_0,GLCD_FONT_5x7,LCD_BLACK,8);
-        LCD_char('(', 10+14*6, 3+8+8*j, GLCD_ROTATE_0,GLCD_FONT_5x7,LCD_BLACK);
+        LCD_string("Exit", 6, 8*1, font_def);
+    } else { i=page*15-1; j=0; }
+    for (; (i<heap_item_cnt)&&(j<15); i++, j++) {
+        LCD_string((char*)&pid_names[i].u.name[0], 6, 8+8*j, GLCD_ROTATE_0,GLCD_FONT_5x7,LCD_BLACK,8);
+        LCD_char('(', 6+14*6, 8+8*j, GLCD_ROTATE_0,GLCD_FONT_5x7,LCD_BLACK);
         mprint_int(tmp_str, pid_names[i].pid, 16, 4);
-        LCD_string(tmp_str, 10+15*6, 3+8+8*j, GLCD_ROTATE_0,GLCD_FONT_5x7,LCD_BLACK,4);
-        LCD_char(')', 10+19*6, 3+8+8*j, GLCD_ROTATE_0,GLCD_FONT_5x7,LCD_BLACK);
+        LCD_string(tmp_str, 6+15*6, 8+8*j, GLCD_ROTATE_0,GLCD_FONT_5x7,LCD_BLACK,4);
+        LCD_char(')', 6+19*6, 8+8*j, GLCD_ROTATE_0,GLCD_FONT_5x7,LCD_BLACK);
     }
-    LCD_dot(3, 11+(idx%7)*8, 3, LCD_BLACK);
+    LCD_dot(2, 11+(idx%15)*8, 3, LCD_BLACK);
 }
 
 void* menu_fnc_config(u8 key_input)
 {
     void *ret = &menu_fnc_config;
-    LCD_string("SETTINGS", 2, 3, font_def);
+    LCD_string("SETTINGS", 0, 0, font_def);
     LCD_line(0, 8, LCD_X-1, 8, LCD_BLACK);
 
-    LCD_string("Exit", 10, 5+8*1, font_def);
-    LCD_string("Home Setup", 10, 5+8*2, font_def);
-    LCD_string("Menu Setup", 10, 5+8*3, font_def);
-    LCD_string("Notes Editor", 10, 5+8*4, font_def);
-    LCD_string("Debug Bus", 10, 5+8*5, font_def);
-    LCD_dot(3, 13+idx*8, 3, LCD_BLACK);
+    LCD_string("Exit", 6, 2+8*1, font_def);
+    LCD_string("Home", 6, 2+8*2, font_def);
+    LCD_string("Menu", 6, 2+8*3, font_def);
+    LCD_string("Notes", 6, 2+8*4, font_def);
+    LCD_string("Dbg Bus", 6, 2+8*5, font_def);
+    LCD_dot(2, 13+idx*8, 3, LCD_BLACK);
 
     heap_alloc = HEAP_ALLOC_NONE; // deallocate heap
     switch(key_input) {
@@ -277,7 +277,7 @@ void* menu_fnc_config(u8 key_input)
 void* menu_fnc_viewnotes(u8 key_input)
 {
     void *ret = &menu_fnc_viewnotes;
-    LCD_string("VIEW NOTES", 2, 3, font_def);
+    LCD_string("VIEW NOTES", 0, 0, font_def);
     LCD_line(0, 8, LCD_X-1, 8, LCD_BLACK);
 
     switch(key_input) {
@@ -287,8 +287,8 @@ void* menu_fnc_viewnotes(u8 key_input)
             break;
     }
 
-    LCD_string("Exit", 10, 5+8*1, font_def);
-    LCD_dot(3, 13+idx*8, 3, LCD_BLACK);
+    LCD_string("Exit", 6, 2+8*1, font_def);
+    LCD_dot(2, 13+idx*8, 3, LCD_BLACK);
 
     return ret;
 }
@@ -296,7 +296,7 @@ void* menu_fnc_viewnotes(u8 key_input)
 void* menu_fnc_edithome(u8 key_input)
 {
     void *ret = &menu_fnc_edithome;
-    LCD_string("HOME SETUP", 2, 3, font_def);
+    LCD_string("HOME SETUP", 0, 0, font_def);
     LCD_line(0, 8, LCD_X-1, 8, LCD_BLACK);
 
     switch(key_input) {
@@ -311,7 +311,7 @@ void* menu_fnc_edithome(u8 key_input)
 void* menu_fnc_editmenu(u8 key_input)
 {
     void *ret = &menu_fnc_editmenu;
-    LCD_string("MENU SETUP", 2, 3, font_def);
+    LCD_string("MENU SETUP", 0, 0, font_def);
     LCD_line(0, 8, LCD_X-1, 8, LCD_BLACK);
 
     switch(key_input) {
@@ -326,7 +326,7 @@ void* menu_fnc_editmenu(u8 key_input)
 void* menu_fnc_editnotes(u8 key_input)
 {
     void *ret = &menu_fnc_editnotes;
-    LCD_string("EDIT NOTES", 2, 3, font_def);
+    LCD_string("EDIT NOTES", 0, 0, font_def);
     LCD_line(0, 8, LCD_X-1, 8, LCD_BLACK);
 
     buzzer_toggle();
@@ -347,30 +347,30 @@ void* menu_fnc_debugbus(u8 key_input)
     s_can_debug* can_dbgs = (s_can_debug*)&heap_mem[0];
     for (i=0;i<heap_item_cnt;i++) {
         mprint_int(tmp_str, can_dbgs[i].pid, 16, 4);
-        LCD_string(tmp_str, 2, 3+8*i, GLCD_ROTATE_0,GLCD_FONT_5x7,LCD_BLACK,4);
-        LCD_char('/', 2+4*6, 3+8*i, GLCD_ROTATE_0,GLCD_FONT_5x7,LCD_BLACK);
+        LCD_string(tmp_str, 0, 16*i, GLCD_ROTATE_0,GLCD_FONT_5x7,LCD_BLACK,4);
+        LCD_char('/', 4*6, 16*i, GLCD_ROTATE_0,GLCD_FONT_5x7,LCD_BLACK);
         mprint_int(tmp_str, can_dbgs[i].msg_type, 16, 2);
-        LCD_string(tmp_str, 2+5*6, 3+8*i, GLCD_ROTATE_0,GLCD_FONT_5x7,LCD_BLACK,2);
+        LCD_string(tmp_str, 5*6, 16*i, GLCD_ROTATE_0,GLCD_FONT_5x7,LCD_BLACK,2);
 
         mprint_int(&tmp_str[0], can_dbgs[i].d0, 16, 4);
         mprint_int(&tmp_str[4], can_dbgs[i].d2, 16, 4);
         mprint_int(&tmp_str[8], can_dbgs[i].d4, 16, 4);
         mprint_int(&tmp_str[12], can_dbgs[i].d6, 16, 4);
         for (j=0;j<can_dbgs[i].len;j++) {
-            LCD_string(&tmp_str[j*2], 2+7*6+j*9, 3+8*i, GLCD_ROTATE_0,GLCD_FONT_4x5,LCD_BLACK,2);
+            LCD_string(&tmp_str[j*2], j*8, 8+16*i, GLCD_ROTATE_0,GLCD_FONT_4x5,LCD_BLACK,2);
         }
-        lcd_setpixel(119,2+8*i,LCD_BLACK);
-        lcd_setpixel(119,3+8*i,LCD_BLACK);
-        lcd_setpixel(119,4+8*i,LCD_BLACK);
+        lcd_setpixel(LCD_X-9,2+16*i,LCD_BLACK);
+        lcd_setpixel(LCD_X-9,3+16*i,LCD_BLACK);
+        lcd_setpixel(LCD_X-9,4+16*i,LCD_BLACK);
         if (!(can_dbgs[i].flags & 0x1))
-            lcd_setpixel(120,3+8*i,LCD_BLACK);
+            lcd_setpixel(LCD_X-8,3+16*i,LCD_BLACK);
         if (!(can_dbgs[i].flags & 0x2))
-            lcd_setpixel(121,3+8*i,LCD_BLACK);
-        lcd_setpixel(122,2+8*i,LCD_BLACK);
-        lcd_setpixel(122,3+8*i,LCD_BLACK);
-        lcd_setpixel(122,4+8*i,LCD_BLACK);
+            lcd_setpixel(LCD_X-7,3+16*i,LCD_BLACK);
+        lcd_setpixel(LCD_X-6,2+16*i,LCD_BLACK);
+        lcd_setpixel(LCD_X-6,3+16*i,LCD_BLACK);
+        lcd_setpixel(LCD_X-6,4+16*i,LCD_BLACK);
         if (can_dbgs[i].flags & ECAN_FLAGS_RTR)
-            lcd_setpixel(125,3+8*i,LCD_BLACK);
+            lcd_setpixel(LCD_X-3,3+16*i,LCD_BLACK);
     }
     if ((idx)&&(heap_item_cnt==8)) // auto-reset
         heap_item_cnt = 0;
