@@ -40,7 +40,7 @@ void read_widgets(void)
         }
     }
     
-    pid_vals_cnt = 20;
+    pid_vals_cnt = 21;
     pid_vals[0].pid  = 0x0010; // BUS VOLT
     pid_vals[1].pid  = 0x0011; // EGT 1   
     pid_vals[2].pid  = 0x0012; // EGT 2   
@@ -61,6 +61,7 @@ void read_widgets(void)
     pid_vals[17].pid = 0x0042; // GPS HDG 
     pid_vals[18].pid = 0x0040; // GPS VEL 
     pid_vals[19].pid = 0x0041; // GPS ALT 
+    pid_vals[20].pid = 0x0043; // TIME    
 }
 
 void draw_compass(u8 x, u8 y, int hdg)
@@ -185,6 +186,14 @@ void draw_widgets(u8 home_screen)
         ptr = mprint_float(tmp_str, pid_vals[5].val*60.0, 3, 0); // 012m
         strcpy(ptr,"m");
         LCD_string(tmp_str, 0, 104, font_sml2);
+
+        // Time in UTC
+        u8 *fl_ptr;
+        fl_ptr = (u8*)&pid_vals[20].val;
+        ptr = mprint_int(tmp_str, fl_ptr[2], 10, 2); // 06:54
+        *ptr++ = ':';
+        mprint_int(ptr, fl_ptr[1], 10, 2);
+        LCD_string(tmp_str, LCD_X-5*4, 104, GLCD_ROTATE_0,GLCD_FONT_3x5,LCD_BLACK,5);
 
     } else {
         
