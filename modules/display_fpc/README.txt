@@ -19,3 +19,4 @@ PCB:
 -LCD FPC footprint directly below LCD, inline with edge of LCD frame
 -header for rotary encoder
 -solder pads for switch
+-electrolytic caps mounted sideways
