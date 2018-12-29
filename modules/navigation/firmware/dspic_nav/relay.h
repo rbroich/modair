@@ -8,5 +8,6 @@
 
 void relay_init(void);
 void relay_toggle(void);
+void* relay_menu(u8 idx, u8 key_input);
 
 #endif

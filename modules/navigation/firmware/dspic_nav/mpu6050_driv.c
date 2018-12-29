@@ -5,7 +5,7 @@
 #include "modair_bus.h"
 #include "led.h"
 
-extern const s_param_settings PARAM_LIST[PARAM_CNT];
+extern const s_settings settings;
 
 void mpu6050_writereg(u8 addr, u8 val)
 {
@@ -64,6 +64,6 @@ void* mpu6050_homescreen(u8 idx, u8 key_input)
     mprint_int(&rtxt[3*16 + 10],buf[12],16,2); // gz
     mprint_int(&rtxt[3*16 + 12],buf[13],16,2);
 
-    ecan_tx_console(PARAM_LIST[idx].pid, rtxt);
+    ecan_tx_console(settings.param[idx].pid, rtxt);
     return &mpu6050_homescreen;
 }

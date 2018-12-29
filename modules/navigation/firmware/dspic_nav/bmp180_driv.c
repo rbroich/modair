@@ -13,7 +13,7 @@ s16 ac1, ac2, ac3, b1, b2, mc, md;
 u16 ac4, ac5, ac6;
 volatile u8 bmp_state = 0;
 
-extern const s_param_settings PARAM_LIST[PARAM_CNT];
+extern const s_settings settings;
 
 void bmp180_tmr_irq(void) // called every 1 ms
 {
@@ -154,28 +154,28 @@ float bmp180_get_altitude(s32 QNH) // qnh in Pa i.e. 101325 Pa
 void bmp180_sendaltfl(u8 idx)
 {
     float alt_fl = bmp180_get_altitude(101325);
-    ecan_tx_float(PARAM_LIST[idx].pid, MT_BROADCAST_VALUE, alt_fl); // Send value
+    ecan_tx_float(settings.param[idx].pid, MT_BROADCAST_VALUE, alt_fl); // Send value
 }
 
 void bmp180_sendqnh(u8 idx)
 {
-    ecan_tx_float(PARAM_LIST[idx].pid, MT_BROADCAST_VALUE, (float)user_QNH/100.0); // Send value
+    ecan_tx_float(settings.param[idx].pid, MT_BROADCAST_VALUE, (float)user_QNH/100.0); // Send value
 }
 
 void bmp180_sendaltqnh(u8 idx)
 {
     float alt_ft = bmp180_get_altitude(user_QNH);
-    ecan_tx_float(PARAM_LIST[idx].pid, MT_BROADCAST_VALUE, alt_ft); // Send value
+    ecan_tx_float(settings.param[idx].pid, MT_BROADCAST_VALUE, alt_ft); // Send value
 }
 
 void bmp180_sendpres(u8 idx)
 {
-    ecan_tx_float(PARAM_LIST[idx].pid, MT_BROADCAST_VALUE, (float)PR); // Send value
+    ecan_tx_float(settings.param[idx].pid, MT_BROADCAST_VALUE, (float)PR); // Send value
 }
 
 void bmp180_sendtemp(u8 idx)
 {
-    ecan_tx_float(PARAM_LIST[idx].pid, MT_BROADCAST_VALUE, OAT); // Send value
+    ecan_tx_float(settings.param[idx].pid, MT_BROADCAST_VALUE, OAT); // Send value
 }
 
 void* bmp180_editqnh(u8 idx, u8 key_input)
@@ -198,7 +198,7 @@ void* bmp180_editqnh(u8 idx, u8 key_input)
     char* ptr = mprint_float(&rtxt[5+1*16], alt_ft, 0, 0);
     ptr[1] = 'f';
     ptr[2] = 't';
-    ecan_tx_console(PARAM_LIST[idx].pid, rtxt);
+    ecan_tx_console(settings.param[idx].pid, rtxt);
     return &bmp180_editqnh;
 }
 
@@ -219,6 +219,6 @@ void* bmp180_homescreen(u8 idx, u8 key_input)
     float alt_ft = bmp180_get_altitude(user_QNH);
     mprint_float(&rtxt[2+3*16], alt_ft, 0, 1);
 
-    ecan_tx_console(PARAM_LIST[idx].pid, rtxt);
+    ecan_tx_console(settings.param[idx].pid, rtxt);
     return &bmp180_homescreen;
 }

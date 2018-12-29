@@ -4,8 +4,7 @@
 #include "modair_bus.h"
 #include "analog.h"
 
-extern const s_param_settings PARAM_LIST[PARAM_CNT];
-extern const s_fuelcal fuellevel_rom;
+extern const s_settings settings;
 
 void fuellevel_cntdwn(u8 idx)
 {
@@ -13,14 +12,14 @@ void fuellevel_cntdwn(u8 idx)
     u16 x = analog_read_fuellevel();
     u16 y = 0;
     for (i=1;i<16;i++) // 16 LUT
-    if (x <= fuellevel_rom.FLx[i]) {
-        y = linear_interpolate(x, fuellevel_rom.FLx[i-1], fuellevel_rom.FLx[i],
-                fuellevel_rom.FLy[i-1], fuellevel_rom.FLy[i]);
+    if (x <= settings.fuellevel_rom.FLx[i]) {
+        y = linear_interpolate(x, settings.fuellevel_rom.FLx[i-1], settings.fuellevel_rom.FLx[i],
+                settings.fuellevel_rom.FLy[i-1], settings.fuellevel_rom.FLy[i]);
         break;
     }
 
     float tmp_f = (float)y*0.01; // convert to liters
-    ecan_tx_float(PARAM_LIST[idx].pid, MT_BROADCAST_VALUE, tmp_f); // Send value
+    ecan_tx_float(settings.param[idx].pid, MT_BROADCAST_VALUE, tmp_f); // Send value
 }
 
 void* fuellevel_fnc_homescreen(u8 idx, u8 key_input)
@@ -41,13 +40,13 @@ void* fuellevel_fnc_homescreen(u8 idx, u8 key_input)
     mprint_int(&rtxt[4+1*16], x, 16, 4);
     
     for (i=1;i<16;i++) // 16 LUT
-    if (x <= fuellevel_rom.FLx[i]) {
-        y = linear_interpolate(x, fuellevel_rom.FLx[i-1], fuellevel_rom.FLx[i],
-                fuellevel_rom.FLy[i-1], fuellevel_rom.FLy[i]);
+    if (x <= settings.fuellevel_rom.FLx[i]) {
+        y = linear_interpolate(x, settings.fuellevel_rom.FLx[i-1], settings.fuellevel_rom.FLx[i],
+                settings.fuellevel_rom.FLy[i-1], settings.fuellevel_rom.FLy[i]);
         break;
     }
     mprint_float(&rtxt[2+2*16], (float)y*0.01, 0, 2);
-    ecan_tx_console(PARAM_LIST[idx].pid, rtxt);
+    ecan_tx_console(settings.param[idx].pid, rtxt);
     return &fuellevel_fnc_homescreen;
 }
 

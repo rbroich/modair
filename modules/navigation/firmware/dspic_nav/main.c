@@ -38,43 +38,45 @@ void* (*current_menu_fnc)(u8,u8) = 0;
 //==============================================================================
 //--------------------GLOBAL CONSTANTS------------------------------------------
 //==============================================================================
-// start the 'nvmdata' section at a page boundary in the PSV region
-// allocate other non-volatile data into the same region (start address)
-__attribute__((aligned(_FLASH_PAGE),space(psv),section(".nvmdata"))) const s_param_settings PARAM_LIST[PARAM_CNT] = {
-    {.pid=0xFF03, .name="Rotax582", .rate=0}, // MODULE
-    {.pid=0x0091, .name="Air Pres", .rate=50}, // 1 Hz
-    {.pid=0x0092, .name="QNH     ", .rate=0},  // 0 Hz
-    {.pid=0x0093, .name="Alt FL  ", .rate=5},  // 10 Hz
-    {.pid=0x0094, .name="Alt QNH ", .rate=5},  // 10 Hz
-    {.pid=0x0095, .name="Air Temp", .rate=50}, // 1 Hz
-    {.pid=0x0019, .name="RELAY   ", .rate=0},
-    {.pid=0x001A, .name="OD1 OUT ", .rate=0},
-    {.pid=0x001B, .name="OD2 OUT ", .rate=0},
-    {.pid=0x0017, .name="FUEL LVL", .rate=10}, // 5 Hz
-    {.pid=0x0010, .name="BUS VOLT", .rate=50}, // 1 Hz
-    {.pid=0x0018, .name="H2O TEMP", .rate=10}, // 5 Hz
-    {.pid=0x00A0, .name="HMC5883 ", .rate=50}, // 1 Hz
-    {.pid=0x00A1, .name="MPU6050 ", .rate=50}  // 1 Hz
+// create a non-volatile program memory region 'nvmdata' at a page boundary,
+// and store the user settings record there. Map the program memory region into
+// data-memory using the PSV mechanism. The entire flash memory page needs to be
+// erased before new settings can be written.
+__attribute__((aligned(_FLASH_PAGE),space(psv),section(".nvmdata"))) const s_settings settings = {
+    .param = {
+        {.pid=0xFF03, .name="Rotax582", .rate=0}, // MODULE
+        {.pid=0x0091, .name="Air Pres", .rate=50}, // 1 Hz
+        {.pid=0x0092, .name="QNH     ", .rate=0},  // 0 Hz
+        {.pid=0x0093, .name="Alt FL  ", .rate=5},  // 10 Hz
+        {.pid=0x0094, .name="Alt QNH ", .rate=5},  // 10 Hz
+        {.pid=0x0095, .name="Air Temp", .rate=50}, // 1 Hz
+        {.pid=0x0019, .name="RELAY   ", .rate=0},
+        {.pid=0x001A, .name="OD1 OUT ", .rate=0},
+        {.pid=0x001B, .name="OD2 OUT ", .rate=0},
+        {.pid=0x0017, .name="FUEL LVL", .rate=10}, // 5 Hz
+        {.pid=0x0010, .name="BUS VOLT", .rate=50}, // 1 Hz
+        {.pid=0x0018, .name="H2O TEMP", .rate=10}, // 5 Hz
+        {.pid=0x00A0, .name="HMC5883 ", .rate=50}, // 1 Hz
+        {.pid=0x00A1, .name="MPU6050 ", .rate=50}  // 1 Hz
+    },
+    .fuellevel_rom = { // converts ADC value to fuel level in 0.01 liter
+        .FLx = {0,360,700,975,1203,1400,1590,1750,1900,2030,2150,2250,2350,2435,2510,2600},
+        .FLy = {0,300,647,982,1310,1637,2000,2353,2730,3099,3487,3845,4249,4626,4995,5488}
+    },
+    .watertemp_rom = { // converts ADC value to water temperature in 0.1 degrees
+        .WTx = {0,41,72,126,239,360,638,1154,3320,3740,3892,3986,4095,4095,4095,4095},
+        .WTy = {2000,1800,1500,1240,1000,840,650,440,-40,-190,-300,0,0,0,0,0}
+    }
 };
 
-__attribute__((space(psv),section(".nvmdata"))) const s_fuelcal fuellevel_rom = { // converts ADC value to fuel level in 0.01 liter
-    .FLx = {0,360,700,975,1203,1400,1590,1750,1900,2030,2150,2250,2350,2435,2510,2600},
-    .FLy = {0,300,647,982,1310,1637,2000,2353,2730,3099,3487,3845,4249,4626,4995,5488}
-};
-
-__attribute__((space(psv),section(".nvmdata"))) const s_watertemp watertemp_rom = { // converts ADC value to water temperature in 0.1 degrees
-    .WTx = {0,41,72,126,239,360,638,1154,3320,3740,3892,3986,4095,4095,4095,4095},
-    .WTy = {2000,1800,1500,1240,1000,840,650,440,-40,-190,-300,0,0,0,0,0}
-};
-
-__attribute__((space(psv))) const s_param_const PARAM_CONST[PARAM_CNT] = {
+const s_param_fptr PARAM_CONST[PARAM_CNT] = {
     {.canrx_fnc_ptr=&module_ecanrx, .sendval_fnc_ptr=0,                   .menu_fnc_ptr=&menu_fnc_homescreen          }, // MODULE
     {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&bmp180_sendpres,    .menu_fnc_ptr=&bmp180_homescreen            }, // Air Pressure in Pa
     {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&bmp180_sendqnh,     .menu_fnc_ptr=&bmp180_editqnh               }, // QNH
     {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&bmp180_sendaltfl,   .menu_fnc_ptr=&bmp180_homescreen            }, // Altitude: Flight Level (i.e. QNH=101325 Pa)
     {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&bmp180_sendaltqnh,  .menu_fnc_ptr=&bmp180_homescreen            }, // Pressure Altitude: Based on user QNH
     {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&bmp180_sendtemp,    .menu_fnc_ptr=&bmp180_homescreen            }, // Outside Air Temperature in degrees C
-    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=0,                   .menu_fnc_ptr=0                             }, // Relay Output
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=0,                   .menu_fnc_ptr=&relay_menu                   }, // Relay Output
     {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=0,                   .menu_fnc_ptr=0                             }, // Open Drain 1 Output
     {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=0,                   .menu_fnc_ptr=0                             }, // Open Drain 2 Output
     {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&fuellevel_cntdwn,   .menu_fnc_ptr=&fuellevel_fnc_homescreen     }, // Fuel Level
@@ -150,41 +152,41 @@ void module_ecanrx(u8 idx, u16 pid, u16 *data, u8 msg_type, u8 flags, u8 len)
     // Get Name
     if ((msg_type==MT_REMOTE_CMD)&&(dptr[2]==RC_GET_NAME)&&(flags==0)&&(len==3)) {
         if (data[0]==DPI_ALL_MODULES) // send this module name
-            ecan_tx_str(PARAM_LIST[0].pid, (char*)PARAM_LIST[0].name, MT_BROADCAST_NAME, 8);
+            ecan_tx_str(settings.param[0].pid, (char*)settings.param[0].name, MT_BROADCAST_NAME, 8);
 
-        if ((data[0]==DPI_ALL_PARAMETERS)||(data[0]==PARAM_LIST[0].pid)) // all parameters, or all parameters of this module
+        if ((data[0]==DPI_ALL_PARAMETERS)||(data[0]==settings.param[0].pid)) // all parameters, or all parameters of this module
             for (i=1;i<PARAM_CNT;i++) // send all parameter ID names of this module
-                ecan_tx_str(PARAM_LIST[i].pid, (char*)PARAM_LIST[i].name, MT_BROADCAST_NAME, 8);
+                ecan_tx_str(settings.param[i].pid, (char*)settings.param[i].name, MT_BROADCAST_NAME, 8);
 
         for (i=1;i<PARAM_CNT;i++)
-            if (data[0]==PARAM_LIST[i].pid)
-                ecan_tx_str(PARAM_LIST[i].pid, (char*)PARAM_LIST[i].name, MT_BROADCAST_NAME, 8);
+            if (data[0]==settings.param[i].pid)
+                ecan_tx_str(settings.param[i].pid, (char*)settings.param[i].name, MT_BROADCAST_NAME, 8);
     }
     if ((msg_type==MT_BROADCAST_NAME)&&(flags==ECAN_FLAGS_RTR)&&(len==0)) {
         for (i=0;i<PARAM_CNT;i++)
-            if (data[0]==PARAM_LIST[i].pid)
-                ecan_tx_str(PARAM_LIST[i].pid, (char*)PARAM_LIST[i].name, MT_BROADCAST_NAME, 8);
+            if (data[0]==settings.param[i].pid)
+                ecan_tx_str(settings.param[i].pid, (char*)settings.param[i].name, MT_BROADCAST_NAME, 8);
     }
 
     // Get Value
     if ( ((msg_type==MT_REMOTE_CMD)&&(dptr[2]==RC_GET_VALUE)&&(flags==0)&&(len==3)) ||
        ((msg_type==MT_BROADCAST_VALUE)&&(flags==ECAN_FLAGS_RTR)&&(len==0)) ) {
         for (i=1;i<PARAM_CNT;i++)
-            if ((data[0]==PARAM_LIST[i].pid)&&(PARAM_CONST[i].sendval_fnc_ptr))
+            if ((data[0]==settings.param[i].pid)&&(PARAM_CONST[i].sendval_fnc_ptr))
                 PARAM_CONST[i].sendval_fnc_ptr(i);
     }
 
     // Remote Menu / Terminal Console
     if ((msg_type==MT_REMOTE_CMD)&&(dptr[2]==RC_CONSOLE_KEY)&&(flags==0)&&(len==4)) {
         for (i=0;i<PARAM_CNT;i++)
-            if (data[0]==PARAM_LIST[i].pid) {
+            if (data[0]==settings.param[i].pid) {
                 static u8 current_menu_idx = 255;
                 if ((current_menu_fnc==0)||(current_menu_idx!=i)) // if not in sub-menu of previous
                     current_menu_fnc = PARAM_CONST[i].menu_fnc_ptr;
                 if (current_menu_fnc) // call console function
                     current_menu_fnc = (*current_menu_fnc)(i,dptr[3]);
                 if (current_menu_fnc==0) // send EXIT if invalid or response==0
-                    ecan_tx_console(PARAM_LIST[i].pid, 0);
+                    ecan_tx_console(settings.param[i].pid, 0);
                 current_menu_idx = i;
                 break;
             }
@@ -228,10 +230,10 @@ int main(void)
 
         // handle TMR timeout function calls here
         for (i=1;i<PARAM_CNT;i++)
-            if ((rate_cnt[i]==0)&&(PARAM_LIST[i].rate)) {
+            if ((rate_cnt[i]==0)&&(settings.param[i].rate)) {
                 if (PARAM_CONST[i].sendval_fnc_ptr) // if timeout fnc exists
                     PARAM_CONST[i].sendval_fnc_ptr(i);
-                rate_cnt[i] = PARAM_LIST[i].rate; // reload countdown value
+                rate_cnt[i] = settings.param[i].rate; // reload countdown value
             }
     }
 }

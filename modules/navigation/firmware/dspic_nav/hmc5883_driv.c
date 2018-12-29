@@ -5,7 +5,7 @@
 #include "modair_bus.h"
 #include "led.h"
 
-extern const s_param_settings PARAM_LIST[PARAM_CNT];
+extern const s_settings settings;
 
 void hmc5883_writereg(u8 addr, u8 val)
 {
@@ -60,6 +60,6 @@ void* hmc5883_homescreen(u8 idx, u8 key_input)
     
     mprint_float(&rtxt[2*16+1], headingDegrees, 0, 2);
 
-    ecan_tx_console(PARAM_LIST[idx].pid, rtxt);
+    ecan_tx_console(settings.param[idx].pid, rtxt);
     return &hmc5883_homescreen;
 }

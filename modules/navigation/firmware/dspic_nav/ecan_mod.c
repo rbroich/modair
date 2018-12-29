@@ -5,7 +5,7 @@
 
 __attribute__((aligned(NR_ECAN_BUF*16))) u16 ecan_buf[NR_ECAN_BUF][8];
 
-extern const s_param_const PARAM_CONST[PARAM_CNT];
+extern const s_param_fptr PARAM_CONST[PARAM_CNT];
 
 void ecan_process(void)
 {

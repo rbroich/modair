@@ -2,9 +2,10 @@
 #define PARAMS_H
 
 #include "common.h"
+#include "fuellevel.h"
+#include "watertemp.h"
 
-// +1 for module       (sizeof(PARAM_LIST)/sizeof(s_param_settings))
-#define PARAM_CNT      14
+#define PARAM_CNT      14 // index 0: module parameters
 
 typedef struct {
     u16 pid;
@@ -16,7 +17,12 @@ typedef struct {
     void (*canrx_fnc_ptr)(u8,u16,u16*,u8,u8,u8);
     void (*sendval_fnc_ptr)(u8);
     void* (*menu_fnc_ptr)(u8,u8);
-} s_param_const;
+} s_param_fptr;
 
+typedef struct {
+    s_param_settings param[PARAM_CNT];
+    s_watertemp watertemp_rom;
+    s_fuelcal fuellevel_rom;
+} s_settings;
 
 #endif
