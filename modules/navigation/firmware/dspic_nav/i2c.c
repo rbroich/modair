@@ -59,8 +59,6 @@ u8 i2c_receive(void)
     I2C1CONbits.RCEN = 1;
     while (I2C1CONbits.RCEN)
         continue;
-    while (!I2C1STATbits.RBF)
-        continue;
     return (I2C1RCV);
 }
 
