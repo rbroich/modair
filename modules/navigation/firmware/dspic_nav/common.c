@@ -1,5 +1,20 @@
 #include "common.h"
+#include "params.h"
+#include "libpic30.h"
 
+extern const s_settings settings;
+extern s_settings tmp_settings;
+
+void flash_tmp_settings(void)
+{
+    _prog_addressT p = __builtin_tbladdress(&settings);
+    _erase_flash(p);
+    int i;
+    for (i=0;i<_FLASH_PAGE/_FLASH_ROW;i++) {
+        _write_flash_word32(p, tmp_settings.words[i*_FLASH_ROW], tmp_settings.words[i*_FLASH_ROW+1]);
+        p += (_FLASH_ROW*2);
+    }
+}
 
 s16 linear_interpolate(u16 x, u16 x0, u16 x1, s16 y0, s16 y1)
 {

@@ -19,7 +19,6 @@
 #include "bmp180_driv.h"
 #include "mpu6050_driv.h"
 #include "hmc5883_driv.h"
-#include "libpic30.h"
 
 //==============================================================================
 //--------------------FUNCTION PROTOTYPES---------------------------------------
@@ -35,6 +34,9 @@ u16 rate_cnt[PARAM_CNT];
 // use function pointers to navigate through the module menu;
 void* (*current_menu_fnc)(u8,u8) = 0;
 
+// temporary settings record for flash memory read-modify-erase-write
+s_settings tmp_settings;
+
 //==============================================================================
 //--------------------GLOBAL CONSTANTS------------------------------------------
 //==============================================================================
@@ -42,7 +44,7 @@ void* (*current_menu_fnc)(u8,u8) = 0;
 // and store the user settings record there. Map the program memory region into
 // data-memory using the PSV mechanism. The entire flash memory page needs to be
 // erased before new settings can be written.
-__attribute__((aligned(_FLASH_PAGE),space(psv),section(".nvmdata"))) const s_settings settings = {
+__attribute__((aligned(_FLASH_PAGE*2),space(psv),section(".nvmdata"))) const s_settings settings = {
     .param = {
         {.pid=0xFF03, .name="Rotax582", .rate=0}, // MODULE
         {.pid=0x0091, .name="Air Pres", .rate=50}, // 1 Hz
@@ -69,6 +71,7 @@ __attribute__((aligned(_FLASH_PAGE),space(psv),section(".nvmdata"))) const s_set
     }
 };
 
+// register new parameter function handlers here; same order as settings.param[]
 const s_param_fptr PARAM_CONST[PARAM_CNT] = {
     {.canrx_fnc_ptr=&module_ecanrx, .sendval_fnc_ptr=0,                   .menu_fnc_ptr=&menu_fnc_homescreen          }, // MODULE
     {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&bmp180_sendpres,    .menu_fnc_ptr=&bmp180_homescreen            }, // Air Pressure in Pa
@@ -181,8 +184,10 @@ void module_ecanrx(u8 idx, u16 pid, u16 *data, u8 msg_type, u8 flags, u8 len)
         for (i=0;i<PARAM_CNT;i++)
             if (data[0]==settings.param[i].pid) {
                 static u8 current_menu_idx = 255;
-                if ((current_menu_fnc==0)||(current_menu_idx!=i)) // if not in sub-menu of previous
+                if ((current_menu_fnc==0)||(current_menu_idx!=i)) { // if not in sub-menu of previous
+                    tmp_settings = settings; // copy settings for modifying
                     current_menu_fnc = PARAM_CONST[i].menu_fnc_ptr;
+                }
                 if (current_menu_fnc) // call console function
                     current_menu_fnc = (*current_menu_fnc)(i,dptr[3]);
                 if (current_menu_fnc==0) // send EXIT if invalid or response==0

@@ -19,10 +19,13 @@ typedef struct {
     void* (*menu_fnc_ptr)(u8,u8);
 } s_param_fptr;
 
-typedef struct {
-    s_param_settings param[PARAM_CNT];
-    s_watertemp watertemp_rom;
-    s_fuelcal fuellevel_rom;
+typedef union {
+    int words[_FLASH_PAGE]; // ensure that sizeof(s_settings)<=_FLASH_PAGE*2
+    struct {
+        s_param_settings param[PARAM_CNT];
+        s_watertemp watertemp_rom;
+        s_fuelcal fuellevel_rom;
+    };
 } s_settings;
 
 #endif
