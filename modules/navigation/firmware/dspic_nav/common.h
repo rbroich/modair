@@ -13,7 +13,6 @@ typedef unsigned long int u32;
 typedef unsigned long long int u64;
 
 #define F_CY                    59881250.0
-#define FLASH_PAGE_SIZE         1024 // 512 instructions (on dsPIC33EP32GP502)
 
 #define INPUT_PIN               1
 #define OUTPUT_PIN              0
