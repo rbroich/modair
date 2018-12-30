@@ -44,7 +44,7 @@ s_settings tmp_settings;
 // and store the user settings record there. Map the program memory region into
 // data-memory using the PSV mechanism. The entire flash memory page needs to be
 // erased before new settings can be written.
-__attribute__((aligned(_FLASH_PAGE*2),space(psv),section(".nvmdata"))) const s_settings settings = {
+__attribute__((aligned(_FLASH_PAGE*2),space(psv),section(".nvmdata"))) const volatile s_settings settings = {
     .param = {
         {.pid=0xFF03, .name="Rotax582", .rate=0}, // MODULE
         {.pid=0x0091, .name="Air Pres", .rate=50}, // 1 Hz

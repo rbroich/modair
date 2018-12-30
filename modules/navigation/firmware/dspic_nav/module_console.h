@@ -8,5 +8,6 @@ void* menu_fnc_homescreen(u8 zero, u8 key_input);
     void* menu_fnc_changesettings(u8 zero, u8 key_input);
         void* menu_fnc_changeid(u8 zero, u8 key_input);
         void* menu_fnc_changename(u8 zero, u8 key_input);
+        void* menu_fnc_changerate(u8 zero, u8 key_input);
 
 #endif
