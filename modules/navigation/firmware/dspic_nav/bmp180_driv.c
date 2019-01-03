@@ -3,7 +3,6 @@
 #include "ecan_mod.h"
 #include "params.h"
 #include "modair_bus.h"
-#include "led.h"
 
 s32 user_QNH = 102400; // in Pa
 u8 oversampling;
@@ -23,7 +22,7 @@ void bmp180_tmr_irq(void) // called every 1 ms
         case 6: bmp_state = 2; break; // read temperature
         case 11: bmp_state = 3; break; // start pressure conversion (max 25.5ms)
         case 37: bmp_state = 4; break; // read pressure
-        case 127: cnt=0; led_toggle(); break;
+        case 127: cnt=0; break;
     }
     cnt++;
 }

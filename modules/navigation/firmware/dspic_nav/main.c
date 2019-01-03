@@ -4,9 +4,7 @@
 #include <string.h>
 #include "common.h"
 #include "config_bits.h"
-#include "led.h"
-#include "relay.h"
-#include "opendrain.h"
+#include "iopins.h"
 #include "analog.h"
 #include "fuellevel.h"
 #include "busvoltage.h"
@@ -52,14 +50,25 @@ __attribute__((aligned(_FLASH_PAGE*2),space(psv),section(".nvmdata"))) const vol
         {.pid=0x0093, .name="Alt FL  ", .rate=5},  // 10 Hz
         {.pid=0x0094, .name="Alt QNH ", .rate=5},  // 10 Hz
         {.pid=0x0095, .name="Air Temp", .rate=50}, // 1 Hz
-        {.pid=0x0019, .name="RELAY   ", .rate=0},
-        {.pid=0x001A, .name="OD1 OUT ", .rate=0},
-        {.pid=0x001B, .name="OD2 OUT ", .rate=0},
+        {.pid=0x0019, .name="RELAY   ", .rate=50},
+        {.pid=0x001A, .name="OD1 OUT ", .rate=50},
+        {.pid=0x001B, .name="OD2 OUT ", .rate=50},
         {.pid=0x0017, .name="FUEL LVL", .rate=10}, // 5 Hz
         {.pid=0x0010, .name="BUS VOLT", .rate=50}, // 1 Hz
         {.pid=0x0018, .name="H2O TEMP", .rate=10}, // 5 Hz
         {.pid=0x00A0, .name="HMC5883 ", .rate=50}, // 1 Hz
         {.pid=0x00A1, .name="MPU6050 ", .rate=50}  // 1 Hz
+//    {.pid=0x0011, .name="EGT 1   ", .rate=12}, // ~4 Hz
+//    {.pid=0x0012, .name="EGT 2   ", .rate=12}, // ~4 Hz
+//    {.pid=0x0013, .name="RPM     ", .rate=25}, // 2 Hz
+//    {.pid=0x0014, .name="ENG HRS ", .rate=50}, // 1 Hz
+//    {.pid=0x0015, .name="ENG ON  ", .rate=50}, // 1 Hz
+//    {.pid=0x0016, .name="MAINTAIN", .rate=50}, // 1 Hz
+//    {.pid=0x001C, .name="FF INST ", .rate=10}, // 5 Hz
+//    {.pid=0x001D, .name="FF AVE  ", .rate=10}, // 5 Hz
+//    {.pid=0x001E, .name="FUEL END", .rate=25}, // 2 Hz
+//    {.pid=0x001F, .name="FUEL RNG", .rate=25}, // 2 Hz
+//    {.pid=0x0020, .name="FUEL USE", .rate=25} // 2 Hz
     },
     .fuellevel_rom = { // converts ADC value to fuel level in 0.01 liter
         .FLx = {0,360,700,975,1203,1400,1590,1750,1900,2030,2150,2250,2350,2435,2510,2600},
@@ -79,11 +88,11 @@ const s_param_fptr PARAM_CONST[PARAM_CNT] = {
     {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&bmp180_sendaltfl,   .menu_fnc_ptr=&bmp180_homescreen            }, // Altitude: Flight Level (i.e. QNH=101325 Pa)
     {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&bmp180_sendaltqnh,  .menu_fnc_ptr=&bmp180_homescreen            }, // Pressure Altitude: Based on user QNH
     {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&bmp180_sendtemp,    .menu_fnc_ptr=&bmp180_homescreen            }, // Outside Air Temperature in degrees C
-    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=0,                   .menu_fnc_ptr=&relay_menu                   }, // Relay Output
-    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=0,                   .menu_fnc_ptr=0                             }, // Open Drain 1 Output
-    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=0,                   .menu_fnc_ptr=0                             }, // Open Drain 2 Output
-    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&fuellevel_cntdwn,   .menu_fnc_ptr=&fuellevel_fnc_homescreen     }, // Fuel Level
-    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&busvoltage_cntdwn,  .menu_fnc_ptr=&busvoltage_fnc_homescreen    }, // Bus Voltage
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&iopins_sendrelay,   .menu_fnc_ptr=&iopins_relay_menu            }, // Relay Output
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&iopins_sendod1,     .menu_fnc_ptr=&iopins_od1_menu              }, // Open Drain 1 Output
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&iopins_sendod2,     .menu_fnc_ptr=&iopins_od2_menu              }, // Open Drain 2 Output
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&fuellevel_cntdwn,   .menu_fnc_ptr=&fuellevel_menu               }, // Fuel Level
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&busvoltage_cntdwn,  .menu_fnc_ptr=&busvoltage_menu              }, // Bus Voltage
     {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&watertemp_cntdwn,   .menu_fnc_ptr=&watertemp_menu               }, // Water Temperature
     {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=0,                   .menu_fnc_ptr=&hmc5883_homescreen           },
     {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=0,                   .menu_fnc_ptr=&mpu6050_homescreen           }
@@ -212,10 +221,8 @@ int main(void)
     while (OSCCONbits.LOCK!=1){}; // Wait for PLL to lock
 
     // Call Parameter Init functions
-    led_init();
+    iopins_init();
     ecan_init();
-    opendrain_init();
-    relay_init();
     analog_init();
     i2c_init();
     bmp180_init(BMP180_ULTRALOWPOWER);

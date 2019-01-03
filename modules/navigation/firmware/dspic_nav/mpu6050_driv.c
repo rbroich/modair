@@ -3,7 +3,6 @@
 #include "ecan_mod.h"
 #include "params.h"
 #include "modair_bus.h"
-#include "led.h"
 
 extern const s_settings settings;
 

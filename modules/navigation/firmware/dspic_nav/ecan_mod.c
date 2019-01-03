@@ -1,6 +1,7 @@
 #include "ecan_mod.h"
 #include "string.h"
 #include "params.h"
+#include "iopins.h"
 #include "modair_bus.h"
 
 __attribute__((aligned(NR_ECAN_BUF*16))) u16 ecan_buf[NR_ECAN_BUF][8];
@@ -16,6 +17,7 @@ void ecan_process(void)
     for (j=0;j<8;j++) {
         buf_sel = 8 + ((cb+j)&0x7); // first 8 are Tx, last 8 are Rx
         if (C1RXFUL1 & (1<<buf_sel)) { // receive buffer full flag
+            led_toggle();
             next_rx_buff = cb+j+1;
             if (ecan_buf[buf_sel][0] & 0x0001) { // Extended Identifier (29-bit ID)
                 // CID = CAN-ID = 0b000s.ssss.ssss.ssee.eeee.eeee.eeee.eeee

@@ -74,6 +74,10 @@ char *mprint_int(char *s, s16 n, s16 base, s16 digits)
 
 char *mprint_float(char *str, float val, s16 pre_digits, s16 post_digits)
 {
+    if (val < 0.0) {
+        val = -val;
+        *str++ = '-';
+    }
     s16 val_i = val;
 	s16 val_p;
 	s16 ten_pow_post;

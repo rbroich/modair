@@ -9,7 +9,11 @@ typedef struct {
 } s_fuelcal;
 
 void fuellevel_cntdwn(u8 idx);
+float fuellevel_interpolate(u16 adc_val);
 
-void* fuellevel_fnc_homescreen(u8 idx, u8 key_input);
+void* fuellevel_menu(u8 idx, u8 key_input);
+    void* fuellevel_info(u8 idx, u8 key_input);
+    void* fuellevel_edit(u8 idx, u8 key_input);
+        void* fuellevel_entry(u8 idx, u8 key_input);
 
 #endif

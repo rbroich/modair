@@ -4,6 +4,6 @@
 #include "common.h"
 
 void busvoltage_cntdwn(u8 idx);
-void* busvoltage_fnc_homescreen(u8 idx, u8 key_input);
+void* busvoltage_menu(u8 idx, u8 key_input);
 
 #endif

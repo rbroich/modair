@@ -1,7 +1,5 @@
 #include "analog.h"
-#include "led.h"
-#include "relay.h"
-#include "opendrain.h"
+#include "iopins.h"
 //#include "enginehours.h"
 
 u16 adc_val_vin;
