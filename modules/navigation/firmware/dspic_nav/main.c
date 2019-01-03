@@ -88,9 +88,9 @@ const s_param_fptr PARAM_CONST[PARAM_CNT] = {
     {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&bmp180_sendaltfl,   .menu_fnc_ptr=&bmp180_homescreen            }, // Altitude: Flight Level (i.e. QNH=101325 Pa)
     {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&bmp180_sendaltqnh,  .menu_fnc_ptr=&bmp180_homescreen            }, // Pressure Altitude: Based on user QNH
     {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&bmp180_sendtemp,    .menu_fnc_ptr=&bmp180_homescreen            }, // Outside Air Temperature in degrees C
-    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&iopins_sendrelay,   .menu_fnc_ptr=&iopins_relay_menu            }, // Relay Output
-    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&iopins_sendod1,     .menu_fnc_ptr=&iopins_od1_menu              }, // Open Drain 1 Output
-    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&iopins_sendod2,     .menu_fnc_ptr=&iopins_od2_menu              }, // Open Drain 2 Output
+    {.canrx_fnc_ptr=&iopins_ecanrx, .sendval_fnc_ptr=&iopins_sendrelay,   .menu_fnc_ptr=&iopins_relay_menu            }, // Relay Output
+    {.canrx_fnc_ptr=&iopins_ecanrx, .sendval_fnc_ptr=&iopins_sendod1,     .menu_fnc_ptr=&iopins_od1_menu              }, // Open Drain 1 Output
+    {.canrx_fnc_ptr=&iopins_ecanrx, .sendval_fnc_ptr=&iopins_sendod2,     .menu_fnc_ptr=&iopins_od2_menu              }, // Open Drain 2 Output
     {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&fuellevel_cntdwn,   .menu_fnc_ptr=&fuellevel_menu               }, // Fuel Level
     {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&busvoltage_cntdwn,  .menu_fnc_ptr=&busvoltage_menu              }, // Bus Voltage
     {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&watertemp_cntdwn,   .menu_fnc_ptr=&watertemp_menu               }, // Water Temperature

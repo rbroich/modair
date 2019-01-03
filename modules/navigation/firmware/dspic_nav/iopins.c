@@ -6,6 +6,7 @@
 #include "modair_bus.h"
 
 extern const s_settings settings;
+extern const s_param_fptr PARAM_CONST[PARAM_CNT];
 
 void iopins_init(void)
 {
@@ -24,6 +25,34 @@ void iopins_init(void)
 void led_toggle(void)
 {
     LED1 = !LED1;
+}
+
+void iopins_ecanrx(u8 idx, u16 pid, u16 *data, u8 msg_type, u8 flags, u8 len)
+{
+    u8* dptr = (u8*)data;
+    if ((msg_type==MT_REMOTE_CMD)&&(dptr[2]==RC_SET_VALUE)&&(flags==0)&&(len==7)) {
+        if (data[0]==settings.param[idx].pid) { // dest PID matches
+            float *new_value = (float*)&data[2];
+            if (PARAM_CONST[idx].sendval_fnc_ptr==&iopins_sendrelay) {
+                if (*new_value==0.0)
+                    RELAY1 = 0;
+                else RELAY1 = 1;
+                return;
+            }
+            if (PARAM_CONST[idx].sendval_fnc_ptr==&iopins_sendod1) {
+                if (*new_value==0.0)
+                    OPENDRAIN1 = 0;
+                else OPENDRAIN1 = 1;
+                return;
+            }
+            if (PARAM_CONST[idx].sendval_fnc_ptr==&iopins_sendod2) {
+                if (*new_value==0.0)
+                    OPENDRAIN2 = 0;
+                else OPENDRAIN2 = 1;
+                return;
+            }
+        }
+    }
 }
 
 void iopins_sendrelay(u8 idx)

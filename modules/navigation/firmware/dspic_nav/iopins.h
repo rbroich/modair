@@ -16,6 +16,7 @@
 
 void iopins_init(void);
 void led_toggle(void);
+void iopins_ecanrx(u8 idx, u16 pid, u16 *data, u8 msg_type, u8 flags, u8 len);
 void iopins_sendrelay(u8 idx);
 void iopins_sendod1(u8 idx);
 void iopins_sendod2(u8 idx);
