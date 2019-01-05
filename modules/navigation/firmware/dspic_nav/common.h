@@ -12,7 +12,7 @@ typedef unsigned int u16;
 typedef unsigned long int u32;
 typedef unsigned long long int u64;
 
-#define F_CY                    59881250.0
+#define F_CY                    50004695.0
 
 #define INPUT_PIN               1
 #define OUTPUT_PIN              0

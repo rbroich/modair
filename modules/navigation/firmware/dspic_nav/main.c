@@ -213,11 +213,11 @@ void module_ecanrx(u8 idx, u16 pid, u16 *data, u8 msg_type, u8 flags, u8 len)
 int main(void)
 {
     u8 i;
-    OSCTUN = 0; // 7.37 MHz
+    OSCTUN = 11; // 7.408 MHz
     CLKDIV = 0; // N1=2, N2=2
-    PLLFBD = 63; // M=65
-    // Fosc = 7.37*M/(N1*N2) = 119.7625 MHz
-    // Fcy  = Fosc/2 = 59.88125 MIPS
+    PLLFBD = 52; // M=54
+    // Fosc = 7.408*M/(N1*N2) = 100.00938915 MHz
+    // Fcy  = Fosc/2 = 50.004695 MIPS
     while (OSCCONbits.LOCK!=1){}; // Wait for PLL to lock
 
     // Call Parameter Init functions

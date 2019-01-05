@@ -139,15 +139,15 @@ void ecan_init(void)
     // Memory Map Select (0 or 1: C1CTRLx,C1VEC,C1FCTRL,C1FIFO,C1INTF,C1INTE,C1EC,C1CFGx,C1FEN1,C1FMSKSELx)
 
     // Set Bit Timing to 1 Mbps
-    // N = 20 time quanta per bit;   FTQ = N x baud = 20 MHz
+    // N = 25 time quanta per bit;   FTQ = N x baud = 25 MHz
     C1CTRL1bits.CANCKS = 1; // FCAN is equal to 2*FP (==2*F_CY)
     C1CFG2bits.SEG1PH = 0x7; // Phase Segment 1 time is 8 TQ
     C1CFG2bits.SEG2PHTS = 0x1; // Phase Segment 2 time is set to be programmable
-    C1CFG2bits.SEG2PH = 0x5; // Phase Segment 2 time is 6 TQ
-    C1CFG2bits.PRSEG = 0x4; // Propagation Segment time is 5 TQ
+    C1CFG2bits.SEG2PH = 0x7; // Phase Segment 2 time is 8 TQ
+    C1CFG2bits.PRSEG = 0x7; // Propagation Segment time is 8 TQ
     C1CFG2bits.SAM = 0x1; // Bus line is sampled three times at the sample point
     C1CFG1bits.SJW = 0x3; // Synchronization Jump Width set to 4 TQ
-    C1CFG1bits.BRP = 0x2; // Baud Rate Prescaler = FCAN /(2*FTQ) -1
+    C1CFG1bits.BRP = 0x1; // Baud Rate Prescaler = FCAN /(2*FTQ) -1
 
     // Memory Map Select (1: C1BUFPNTx,C1RXMxSID,C1RXMxEID,C1RXFxSID,C1RXFxEID)
     C1CTRL1bits.WIN = 1;

@@ -3,7 +3,7 @@
 void i2c_init(void)
 {
     I2C1CON = 0; // enable slew rate, 7-bit address
-    I2C1BRG = 141; // 400 kHz ((1/FSCL - 120ns)*F_CY) - 2
+    I2C1BRG = 117; // 400 kHz ((1/FSCL - 120ns)*F_CY) - 2
     I2C1STAT = 0; // clear status bits
     I2C1CONbits.I2CEN = 1;
     I2C1RCV; // read buffer to clear buffer full
