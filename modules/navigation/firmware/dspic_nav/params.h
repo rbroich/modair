@@ -5,7 +5,7 @@
 #include "fuellevel.h"
 #include "watertemp.h"
 
-#define PARAM_CNT      14 // index 0: module parameters
+#define PARAM_CNT      25 // index 0: module parameters
 
 typedef struct {
     u16 pid;
@@ -25,6 +25,10 @@ typedef union {
         s_param_settings param[PARAM_CNT];
         s_watertemp watertemp_rom;
         s_fuelcal fuellevel_rom;
+        u16 rmp_mul;
+        float engine_hobbs;
+        u8 maintainance_date[3];
+        u16 maintainance_date_pid;
     };
 } s_settings;
 

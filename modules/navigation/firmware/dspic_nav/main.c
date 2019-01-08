@@ -17,6 +17,10 @@
 #include "bmp180_driv.h"
 #include "mpu6050_driv.h"
 #include "hmc5883_driv.h"
+#include "fuelflow.h"
+#include "rpm.h"
+#include "thermocouple.h"
+#include "enginehours.h"
 
 //==============================================================================
 //--------------------FUNCTION PROTOTYPES---------------------------------------
@@ -56,19 +60,19 @@ __attribute__((aligned(_FLASH_PAGE*2),space(psv),section(".nvmdata"))) const vol
         {.pid=0x0017, .name="FUEL LVL", .rate=10}, // 5 Hz
         {.pid=0x0010, .name="BUS VOLT", .rate=50}, // 1 Hz
         {.pid=0x0018, .name="H2O TEMP", .rate=10}, // 5 Hz
+        {.pid=0x0011, .name="EGT 1   ", .rate=12}, // ~4 Hz
+        {.pid=0x0012, .name="EGT 2   ", .rate=12}, // ~4 Hz
+        {.pid=0x0013, .name="RPM     ", .rate=25}, // 2 Hz
+        {.pid=0x0014, .name="ENG HRS ", .rate=50}, // 1 Hz
+        {.pid=0x0015, .name="ENG ON  ", .rate=50}, // 1 Hz
+        {.pid=0x0016, .name="MAINTAIN", .rate=50}, // 1 Hz
+        {.pid=0x001C, .name="FF INST ", .rate=10}, // 5 Hz
+        {.pid=0x001D, .name="FF AVE  ", .rate=10}, // 5 Hz
+        {.pid=0x001E, .name="FUEL END", .rate=25}, // 2 Hz
+        {.pid=0x001F, .name="FUEL RNG", .rate=25}, // 2 Hz
+        {.pid=0x0020, .name="FUEL USE", .rate=25}, // 2 Hz
         {.pid=0x00A0, .name="HMC5883 ", .rate=50}, // 1 Hz
         {.pid=0x00A1, .name="MPU6050 ", .rate=50}  // 1 Hz
-//    {.pid=0x0011, .name="EGT 1   ", .rate=12}, // ~4 Hz
-//    {.pid=0x0012, .name="EGT 2   ", .rate=12}, // ~4 Hz
-//    {.pid=0x0013, .name="RPM     ", .rate=25}, // 2 Hz
-//    {.pid=0x0014, .name="ENG HRS ", .rate=50}, // 1 Hz
-//    {.pid=0x0015, .name="ENG ON  ", .rate=50}, // 1 Hz
-//    {.pid=0x0016, .name="MAINTAIN", .rate=50}, // 1 Hz
-//    {.pid=0x001C, .name="FF INST ", .rate=10}, // 5 Hz
-//    {.pid=0x001D, .name="FF AVE  ", .rate=10}, // 5 Hz
-//    {.pid=0x001E, .name="FUEL END", .rate=25}, // 2 Hz
-//    {.pid=0x001F, .name="FUEL RNG", .rate=25}, // 2 Hz
-//    {.pid=0x0020, .name="FUEL USE", .rate=25} // 2 Hz
     },
     .fuellevel_rom = { // converts ADC value to fuel level in 0.01 liter
         .FLx = {0,360,700,975,1203,1400,1590,1750,1900,2030,2150,2250,2350,2435,2510,2600},
@@ -77,25 +81,40 @@ __attribute__((aligned(_FLASH_PAGE*2),space(psv),section(".nvmdata"))) const vol
     .watertemp_rom = { // converts ADC value to water temperature in 0.1 degrees
         .WTx = {0,41,72,126,239,360,638,1154,3320,3740,3892,3986,4095,4095,4095,4095},
         .WTy = {2000,1800,1500,1240,1000,840,650,440,-40,-190,-300,0,0,0,0,0}
-    }
+    },
+    .rmp_mul = 20, // CNTs per 0.5s => 2.0 (cnts/sec) * 60.0 (cnts/min) / 6.0 (rotax582 setting?)
+    .engine_hobbs = 0,
+    .maintainance_date = {28,04,18}, // dd,mm,20yy
+    .maintainance_date_pid = 0 // linked PID that provides today's date
 };
 
 // register new parameter function handlers here; same order as settings.param[]
 const s_param_fptr PARAM_CONST[PARAM_CNT] = {
-    {.canrx_fnc_ptr=&module_ecanrx, .sendval_fnc_ptr=0,                   .menu_fnc_ptr=&menu_fnc_homescreen          }, // MODULE
-    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&bmp180_sendpres,    .menu_fnc_ptr=&bmp180_homescreen            }, // Air Pressure in Pa
-    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&bmp180_sendqnh,     .menu_fnc_ptr=&bmp180_editqnh               }, // QNH
-    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&bmp180_sendaltfl,   .menu_fnc_ptr=&bmp180_homescreen            }, // Altitude: Flight Level (i.e. QNH=101325 Pa)
-    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&bmp180_sendaltqnh,  .menu_fnc_ptr=&bmp180_homescreen            }, // Pressure Altitude: Based on user QNH
-    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&bmp180_sendtemp,    .menu_fnc_ptr=&bmp180_homescreen            }, // Outside Air Temperature in degrees C
-    {.canrx_fnc_ptr=&iopins_ecanrx, .sendval_fnc_ptr=&iopins_sendrelay,   .menu_fnc_ptr=&iopins_relay_menu            }, // Relay Output
-    {.canrx_fnc_ptr=&iopins_ecanrx, .sendval_fnc_ptr=&iopins_sendod1,     .menu_fnc_ptr=&iopins_od1_menu              }, // Open Drain 1 Output
-    {.canrx_fnc_ptr=&iopins_ecanrx, .sendval_fnc_ptr=&iopins_sendod2,     .menu_fnc_ptr=&iopins_od2_menu              }, // Open Drain 2 Output
-    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&fuellevel_cntdwn,   .menu_fnc_ptr=&fuellevel_menu               }, // Fuel Level
-    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&busvoltage_cntdwn,  .menu_fnc_ptr=&busvoltage_menu              }, // Bus Voltage
-    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&watertemp_cntdwn,   .menu_fnc_ptr=&watertemp_menu               }, // Water Temperature
-    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=0,                   .menu_fnc_ptr=&hmc5883_homescreen           },
-    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=0,                   .menu_fnc_ptr=&mpu6050_homescreen           }
+    {.canrx_fnc_ptr=&module_ecanrx, .sendval_fnc_ptr=0,                    .menu_fnc_ptr=&menu_fnc_homescreen          }, // MODULE
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&bmp180_sendpres,     .menu_fnc_ptr=&bmp180_homescreen            }, // Air Pressure in Pa
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&bmp180_sendqnh,      .menu_fnc_ptr=&bmp180_editqnh               }, // QNH
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&bmp180_sendaltfl,    .menu_fnc_ptr=&bmp180_homescreen            }, // Altitude: Flight Level (i.e. QNH=101325 Pa)
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&bmp180_sendaltqnh,   .menu_fnc_ptr=&bmp180_homescreen            }, // Pressure Altitude: Based on user QNH
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&bmp180_sendtemp,     .menu_fnc_ptr=&bmp180_homescreen            }, // Outside Air Temperature in degrees C
+    {.canrx_fnc_ptr=&iopins_ecanrx, .sendval_fnc_ptr=&iopins_sendrelay,    .menu_fnc_ptr=&iopins_relay_menu            }, // Relay Output
+    {.canrx_fnc_ptr=&iopins_ecanrx, .sendval_fnc_ptr=&iopins_sendod1,      .menu_fnc_ptr=&iopins_od1_menu              }, // Open Drain 1 Output
+    {.canrx_fnc_ptr=&iopins_ecanrx, .sendval_fnc_ptr=&iopins_sendod2,      .menu_fnc_ptr=&iopins_od2_menu              }, // Open Drain 2 Output
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&fuellevel_cntdwn,    .menu_fnc_ptr=&fuellevel_menu               }, // Fuel Level
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&busvoltage_cntdwn,   .menu_fnc_ptr=&busvoltage_menu              }, // Bus Voltage
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&watertemp_cntdwn,    .menu_fnc_ptr=&watertemp_menu               }, // Water Temperature
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&thermocouple_cntdwn, .menu_fnc_ptr=&thermocouple_fnc_homescreen  }, // Thermocouple 1
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&thermocouple_cntdwn, .menu_fnc_ptr=&thermocouple_fnc_homescreen  }, // Thermocouple 2
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&rpm_cntdwn,          .menu_fnc_ptr=0                             }, // RPM
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&enginehours_cntdwn,  .menu_fnc_ptr=&enginehours_fnc_homescreen   }, // Engine Hours / Hobbs Meter
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&engineon_sendval,    .menu_fnc_ptr=0                             }, // Engine On Time since started
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=0,                    .menu_fnc_ptr=0                             }, // Maintenance Timer
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=0,                    .menu_fnc_ptr=0                             }, // Fuel Flow Instantaneous
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=0,                    .menu_fnc_ptr=0                             }, // Fuel Flow Average since started
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=0,                    .menu_fnc_ptr=0                             }, // Time to Empty Tank (fuel endurance)
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=0,                    .menu_fnc_ptr=0                             }, // Range to Empty Tank (fuel range)
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=0,                    .menu_fnc_ptr=0                             }, // Fuel Burned
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=0,                    .menu_fnc_ptr=&hmc5883_homescreen           },
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=0,                    .menu_fnc_ptr=&mpu6050_homescreen           }
 };
 
 //==============================================================================
@@ -107,6 +126,8 @@ void __attribute__((interrupt, auto_psv)) _T1Interrupt(void)
     for (i=1;i<PARAM_CNT;i++)
         if (rate_cnt[i])
             rate_cnt[i]--;
+    enginehours_tmr_irq();
+    rpm_tmr_irq();
     _T1IF = 0;  // clear the interrupt
 }
 
@@ -114,6 +135,13 @@ void __attribute__((interrupt, auto_psv)) _T2Interrupt(void)
 {
     bmp180_tmr_irq();
     _T2IF = 0;  // clear the interrupt
+}
+
+void __attribute__((interrupt, auto_psv)) _CNInterrupt(void)
+{
+    fuelflow_cn_irq();
+    rpm_cn_irq();
+    _CNIF = 0;  // clear the interrupt
 }
 
 void __attribute__((interrupt, auto_psv)) _AD1Interrupt(void)
@@ -150,6 +178,10 @@ void irq_init(void)
     _T1IF = 0; // Timer1 Flag
     _T1IP = 3; // third lowest priority level
     _T1IE = ENABLE; // timer1 interrupt enable
+
+    _CNIF = 0; // ChangeNotification Flag
+    _CNIP = 4; // highest priority level
+    _CNIE = ENABLE; // change notification interrupt enable
 }
 
 //==============================================================================
@@ -228,6 +260,10 @@ int main(void)
     bmp180_init(BMP180_ULTRALOWPOWER);
     mpu6050_init();
     hmc5883_init();
+    enginehours_init();
+    thermocouple_init();
+    fuelflow_init();
+    rpm_init();
     tmr1_init(50); // 50 Hz == 20 ms ticks
     tmr2_init(1000); // 1000 Hz == 1 ms ticks
     irq_init();
