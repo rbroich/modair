@@ -1,6 +1,6 @@
 #include "analog.h"
 #include "iopins.h"
-//#include "enginehours.h"
+#include "rpm.h"
 
 u16 adc_val_vin;
 u16 adc_val_ntc;
@@ -16,7 +16,7 @@ void analog_irq(void)
         RELAY1 = 0;
         OPENDRAIN1 = 0;
         OPENDRAIN2 = 0;
-        //enginehours_vinlost_irq(); // trigger IRQ for VIN lost
+        enginehours_vinlost_irq(); // trigger IRQ for VIN lost
     }
 }
 
@@ -38,7 +38,7 @@ void analog_init(void)
     AD1CHS0 = 0x0000; // VREF- for CH0 neg input, CH0SA bits ignored for CH0 pos input selection
 
     AD1CON1bits.ADON = 1; // enable ADC module
-    delay_us(20); // ADC stabilization delay
+    delay_us(20); // ADC stabilisation delay
 }
 
 u16 analog_read_fuellevel(void)

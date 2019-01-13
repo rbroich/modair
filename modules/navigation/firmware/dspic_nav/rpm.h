@@ -9,9 +9,12 @@
 
 void rpm_cn_irq(void);
 void rpm_tmr_irq(void);
-
-void rpm_cntdwn(u8 idx);
-
+void rpm_sendval(u8 idx);
 void rpm_init(void);
+
+void enginehours_vinlost_irq(void);
+void engineon_sendval(u8 idx);
+void enginehours_sendval(u8 idx);
+void* enginehours_menu(u8 idx, u8 key_input);
 
 #endif

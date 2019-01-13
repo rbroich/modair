@@ -20,7 +20,6 @@
 #include "fuelflow.h"
 #include "rpm.h"
 #include "thermocouple.h"
-#include "enginehours.h"
 
 //==============================================================================
 //--------------------FUNCTION PROTOTYPES---------------------------------------
@@ -83,8 +82,8 @@ __attribute__((aligned(_FLASH_PAGE*2),space(psv),section(".nvmdata"))) const vol
         .WTy = {2000,1800,1500,1240,1000,840,650,440,-40,-190,-300,0,0,0,0,0}
     },
     .rmp_mul = 20, // CNTs per 0.5s => 2.0 (cnts/sec) * 60.0 (cnts/min) / 6.0 (rotax582 setting?)
-    .engine_hobbs = 0,
-    .maintainance_date = {28,04,18}, // dd,mm,20yy
+    .engine_hobbs = 1016.05,
+    .maintainance_date = {22,04,19}, // dd,mm,20yy
     .maintainance_date_pid = 0 // linked PID that provides today's date
 };
 
@@ -104,9 +103,9 @@ const s_param_fptr PARAM_CONST[PARAM_CNT] = {
     {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&watertemp_cntdwn,    .menu_fnc_ptr=&watertemp_menu               }, // Water Temperature
     {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&thermocouple_cntdwn, .menu_fnc_ptr=&thermocouple_fnc_homescreen  }, // Thermocouple 1
     {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&thermocouple_cntdwn, .menu_fnc_ptr=&thermocouple_fnc_homescreen  }, // Thermocouple 2
-    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&rpm_cntdwn,          .menu_fnc_ptr=0                             }, // RPM
-    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&enginehours_cntdwn,  .menu_fnc_ptr=&enginehours_fnc_homescreen   }, // Engine Hours / Hobbs Meter
-    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&engineon_sendval,    .menu_fnc_ptr=0                             }, // Engine On Time since started
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&rpm_sendval,         .menu_fnc_ptr=0                             }, // RPM
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&enginehours_sendval, .menu_fnc_ptr=&enginehours_menu             }, // Engine Hours / Hobbs Meter
+    {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=&engineon_sendval,    .menu_fnc_ptr=&enginehours_menu             }, // Engine On Time since started
     {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=0,                    .menu_fnc_ptr=0                             }, // Maintenance Timer
     {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=0,                    .menu_fnc_ptr=0                             }, // Fuel Flow Instantaneous
     {.canrx_fnc_ptr=0,              .sendval_fnc_ptr=0,                    .menu_fnc_ptr=0                             }, // Fuel Flow Average since started
@@ -126,7 +125,6 @@ void __attribute__((interrupt, auto_psv)) _T1Interrupt(void)
     for (i=1;i<PARAM_CNT;i++)
         if (rate_cnt[i])
             rate_cnt[i]--;
-    enginehours_tmr_irq();
     rpm_tmr_irq();
     _T1IF = 0;  // clear the interrupt
 }
@@ -260,7 +258,6 @@ int main(void)
     bmp180_init(BMP180_ULTRALOWPOWER);
     mpu6050_init();
     hmc5883_init();
-    enginehours_init();
     thermocouple_init();
     fuelflow_init();
     rpm_init();
